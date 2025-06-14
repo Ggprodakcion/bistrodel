@@ -1,14 +1,26 @@
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { CheckCircle, Lightbulb, Users, Code, Film, FileText, Bot, Presentation } from "lucide-react"
+import {
+  CheckCircle,
+  Lightbulb,
+  Users,
+  Code,
+  Film,
+  FileText,
+  Bot,
+  Presentation,
+  ClipboardList,
+  MessageSquare,
+  Award,
+} from "lucide-react" // Добавляем новые иконки
 import { Testimonials } from "@/components/testimonials"
-import { PublicHeader } from "@/components/public-header" // Импортируем новый хедер
-import { PublicFooter } from "@/components/public-footer" // Импортируем новый футер
+import { PublicHeader } from "@/components/public-header"
+import { PublicFooter } from "@/components/public-footer"
 
 export default function LandingPage() {
   return (
     <div className="flex flex-col min-h-screen">
-      <PublicHeader /> {/* Используем новый хедер */}
+      <PublicHeader />
       {/* Hero Section / Call to Action */}
       <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48 bg-gradient-to-r from-gray-900 to-gray-800 text-white">
         <div className="container px-4 md:px-6 text-center">
@@ -55,8 +67,67 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+      {/* How It Works Section */}
+      <section id="how-it-works" className="w-full py-12 md:py-24 lg:py-32">
+        <div className="container px-4 md:px-6">
+          <div className="flex flex-col items-center justify-center space-y-4 text-center mb-12">
+            <div className="space-y-2">
+              <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">Как это работает?</h2>
+              <p className="max-w-[900px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed dark:text-gray-400">
+                Простой и понятный процесс от идеи до реализации.
+              </p>
+            </div>
+          </div>
+          <div className="mx-auto grid max-w-5xl items-start gap-8 sm:grid-cols-2 lg:grid-cols-4 py-12">
+            <Card className="flex flex-col items-center text-center p-6">
+              <CardHeader>
+                <ClipboardList className="h-10 w-10 text-primary mb-4" />
+                <CardTitle className="text-lg font-semibold">1. Оставьте заявку</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Заполните простую форму на сайте, выбрав нужную услугу и описав ваш проект.
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="flex flex-col items-center text-center p-6">
+              <CardHeader>
+                <MessageSquare className="h-10 w-10 text-primary mb-4" />
+                <CardTitle className="text-lg font-semibold">2. Обсуждение деталей</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Наш менеджер свяжется с вами для уточнения всех нюансов и формирования предложения.
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="flex flex-col items-center text-center p-6">
+              <CardHeader>
+                <Code className="h-10 w-10 text-primary mb-4" />
+                <CardTitle className="text-lg font-semibold">3. Выполнение проекта</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Наша команда приступает к работе, регулярно информируя вас о прогрессе.
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="flex flex-col items-center text-center p-6">
+              <CardHeader>
+                <Award className="h-10 w-10 text-primary mb-4" />
+                <CardTitle className="text-lg font-semibold">4. Получение результата</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Вы получаете готовую работу, соответствующую вашим ожиданиям и нашим стандартам качества.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
       {/* Advantages Section */}
-      <section id="advantages" className="w-full py-12 md:py-24 lg:py-32">
+      <section id="advantages" className="w-full py-12 md:py-24 lg:py-32 bg-gray-100 dark:bg-gray-800">
         <div className="container px-4 md:px-6">
           <div className="flex flex-col items-center justify-center space-y-4 text-center">
             <div className="space-y-2">
@@ -155,7 +226,7 @@ export default function LandingPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Профессиональный видеомонтаж для любых целей — от рекламных роликов до контента для YouTube.
+                  Профессиональный видеомонтаж для любых целей — от рекламных ролик до контента для YouTube.
                 </p>
               </CardContent>
             </Card>
@@ -216,7 +287,7 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-      <PublicFooter /> {/* Используем новый футер */}
+      <PublicFooter />
     </div>
   )
 }

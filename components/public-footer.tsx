@@ -8,9 +8,14 @@ export function PublicFooter() {
         <Link href="/contact" className="text-xs hover:underline underline-offset-4" prefetch={false}>
           Контакты
         </Link>
-        {/* Дополнительные ссылки, например, на политику конфиденциальности, можно добавить здесь */}
         <Link href="/#about" className="text-xs hover:underline underline-offset-4" prefetch={false}>
           О нас
+        </Link>
+        <Link href="/privacy-policy" className="text-xs hover:underline underline-offset-4" prefetch={false}>
+          Политика конфиденциальности
+        </Link>
+        <Link href="/terms-of-service" className="text-xs hover:underline underline-offset-4" prefetch={false}>
+          Условия использования
         </Link>
       </nav>
     </footer>

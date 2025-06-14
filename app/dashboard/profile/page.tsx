@@ -11,7 +11,6 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowLeft, Save, User, KeyRound, Trash2 } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
-import { supabase } from "@/lib/supabase" // Импортируем клиент Supabase
 
 // Тип для профиля пользователя
 interface UserProfile {
@@ -80,6 +79,7 @@ export default function ClientProfilePage() {
   const [isSaving, setIsSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [passwordChange, setPasswordChange] = useState({
+    current: "",
     new: "",
     confirmNew: "",
   })
@@ -92,52 +92,38 @@ export default function ClientProfilePage() {
       return
     }
 
-    const loadProfile = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (user) {
-        const currentClientEmail = user.email || ""
-        const storedProfile = localStorage.getItem("clientProfile")
+    const storedProfile = localStorage.getItem("clientProfile")
+    const currentClientEmail = localStorage.getItem("currentClientEmail")
 
-        let initialProfile: UserProfile
-
-        if (storedProfile) {
-          const parsedProfile = JSON.parse(storedProfile)
-          if (parsedProfile.email === currentClientEmail) {
-            initialProfile = { ...parsedProfile, id: user.id }
-          } else {
-            // Если email в localStorage не совпадает, создаем новый профиль
-            initialProfile = {
-              id: user.id,
-              name: "Новый Пользователь",
-              email: currentClientEmail,
-              phone: "",
-              address: "",
-              lastUpdated: new Date().toLocaleString("ru-RU"),
-            }
-          }
-        } else {
-          initialProfile = {
-            id: user.id,
-            name: "Новый Пользователь",
-            email: currentClientEmail,
-            phone: "",
-            address: "",
-            lastUpdated: new Date().toLocaleString("ru-RU"),
-          }
+    if (storedProfile) {
+      const parsedProfile = JSON.parse(storedProfile)
+      if (parsedProfile.email === currentClientEmail) {
+        setProfile(parsedProfile)
+      } else {
+        const initialProfile: UserProfile = {
+          id: `CLIENT-${Date.now()}`,
+          name: "Новый Пользователь",
+          email: currentClientEmail || "",
+          phone: "",
+          address: "",
+          lastUpdated: new Date().toLocaleString("ru-RU"),
         }
         setProfile(initialProfile)
         localStorage.setItem("clientProfile", JSON.stringify(initialProfile))
-      } else {
-        // Если пользователь Supabase не найден, но isAuthenticated true (возможно, старый localStorage)
-        // Перенаправляем на логин
-        logout()
       }
+    } else {
+      const initialProfile: UserProfile = {
+        id: `CLIENT-${Date.now()}`,
+        name: "Новый Пользователь",
+        email: currentClientEmail || "",
+        phone: "",
+        address: "",
+        lastUpdated: new Date().toLocaleString("ru-RU"),
+      }
+      setProfile(initialProfile)
+      localStorage.setItem("clientProfile", JSON.stringify(initialProfile))
     }
-
-    loadProfile()
-  }, [isAuthenticated, router, logout])
+  }, [isAuthenticated, router])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target
@@ -165,6 +151,22 @@ export default function ClientProfilePage() {
     setPasswordError("")
     setPasswordSuccess("")
 
+    const storedUsers = JSON.parse(localStorage.getItem("clientUsers") || "[]")
+    const currentUserEmail = localStorage.getItem("currentClientEmail")
+    const userIndex = storedUsers.findIndex((u: any) => u.email === currentUserEmail)
+
+    if (userIndex === -1) {
+      setPasswordError("Пользователь не найден.")
+      return
+    }
+
+    const currentUser = storedUsers[userIndex]
+
+    if (currentUser.password !== passwordChange.current) {
+      setPasswordError("Текущий пароль неверен.")
+      return
+    }
+
     if (passwordChange.new.length < 6) {
       setPasswordError("Новый пароль должен быть не менее 6 символов.")
       return
@@ -175,33 +177,25 @@ export default function ClientProfilePage() {
       return
     }
 
-    const { error } = await supabase.auth.updateUser({
-      password: passwordChange.new,
-    })
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+    currentUser.password = passwordChange.new
+    storedUsers[userIndex] = currentUser
+    localStorage.setItem("clientUsers", JSON.stringify(storedUsers))
 
-    if (error) {
-      setPasswordError(error.message)
-    } else {
-      setPasswordSuccess("Пароль успешно изменен!")
-      setPasswordChange({ new: "", confirmNew: "" })
-    }
+    setPasswordSuccess("Пароль успешно изменен!")
+    setPasswordChange({ current: "", new: "", confirmNew: "" })
     setTimeout(() => setPasswordSuccess(""), 3000)
   }
 
-  const handleDeleteAccount = async () => {
+  const handleDeleteAccount = () => {
     if (window.confirm("Вы уверены, что хотите удалить свой аккаунт? Это действие необратимо.")) {
-      // ВНИМАНИЕ: Удаление пользователя из Supabase на стороне клиента
-      // не рекомендуется для продакшн-приложений, так как требует service_role key
-      // и должно выполняться на сервере (например, через Supabase Edge Function).
-      // Здесь мы просто выходим из системы и очищаем локальные данные.
-      // Для полного удаления пользователя из Supabase, вам потребуется серверная функция.
-
+      const storedUsers = JSON.parse(localStorage.getItem("clientUsers") || "[]")
       const currentUserEmail = localStorage.getItem("currentClientEmail")
+      const updatedUsers = storedUsers.filter((u: any) => u.email !== currentUserEmail)
+      localStorage.setItem("clientUsers", JSON.stringify(updatedUsers))
 
-      // Удаляем профиль
       localStorage.removeItem("clientProfile")
 
-      // Удаляем заказы и обращения, связанные с этим email
       const allOrders: Order[] = JSON.parse(localStorage.getItem("clientOrders") || "[]")
       const remainingOrders = allOrders.filter((order) => order.clientEmail !== currentUserEmail)
       localStorage.setItem("clientOrders", JSON.stringify(remainingOrders))
@@ -210,10 +204,8 @@ export default function ClientProfilePage() {
       const remainingTickets = allTickets.filter((ticket) => ticket.email !== currentUserEmail)
       localStorage.setItem("supportTickets", JSON.stringify(remainingTickets))
 
-      await logout() // Выходим из системы Supabase
-      alert(
-        "Ваш аккаунт был успешно удален (локально). Для полного удаления из базы данных требуется серверное действие.",
-      )
+      logout()
+      alert("Ваш аккаунт был успешно удален.")
     }
   }
 
@@ -329,6 +321,16 @@ export default function ClientProfilePage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handlePasswordChange} className="space-y-4">
+              <div>
+                <Label htmlFor="current-password">Текущий пароль</Label>
+                <Input
+                  id="current-password"
+                  type="password"
+                  value={passwordChange.current}
+                  onChange={(e) => setPasswordChange({ ...passwordChange, current: e.target.value })}
+                  required
+                />
+              </div>
               <div>
                 <Label htmlFor="new-password">Новый пароль</Label>
                 <Input

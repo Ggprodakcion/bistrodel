@@ -26,7 +26,7 @@ export default function ClientRegisterPage() {
     }
   }, [isAuthenticated, router])
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setSuccess("")
@@ -36,16 +36,14 @@ export default function ClientRegisterPage() {
       return
     }
 
-    const { success: registrationSuccess, error: registrationError } = await register(email, password)
-
-    if (registrationSuccess) {
+    if (register(email, password)) {
       setSuccess("Регистрация успешна! Теперь вы можете войти.")
       setEmail("")
       setPassword("")
       setConfirmPassword("")
       setTimeout(() => router.push("/dashboard/login"), 2000)
     } else {
-      setError(registrationError || "Произошла ошибка при регистрации.")
+      setError("Пользователь с таким email уже существует.")
     }
   }
 

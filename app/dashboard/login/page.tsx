@@ -25,14 +25,36 @@ export default function LoginPage() {
     setError(null)
     setIsLoading(true)
 
-    const { success, error: authError } = await login(email, password)
+    try {
+      const simulatedApiSuccess = await new Promise<boolean>((resolve, reject) => {
+        setTimeout(() => {
+          if (email === "client@example.com" && password === "password") {
+            resolve(true)
+          } else {
+            reject(new Error("Неверный email или пароль."))
+          }
+        }, 1000)
+      })
 
-    if (success) {
-      router.push("/dashboard")
-    } else {
-      setError(authError || "Произошла ошибка при входе. Пожалуйста, попробуйте еще раз.")
+      if (simulatedApiSuccess) {
+        if (login(email, password)) {
+          router.push("/dashboard")
+        } else {
+          setError("Пользователь не найден или неверный пароль (проверьте регистрацию).")
+        }
+      }
+    } catch (err) {
+      if (err instanceof TypeError && err.message.includes("NetworkError")) {
+        setError("Ошибка сети. Пожалуйста, проверьте ваше интернет-соединение или попробуйте позже.")
+      } else if (err instanceof Error) {
+        setError(err.message)
+      } else {
+        setError("Произошла неизвестная ошибка.")
+      }
+      console.error("Login error:", err)
+    } finally {
+      setIsLoading(false)
     }
-    setIsLoading(false)
   }
 
   return (

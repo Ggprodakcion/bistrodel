@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, MessageCircle, History, Download, User, LifeBuoy } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
+import { NotificationBadge } from "@/components/notification-badge" // Импорт NotificationBadge
 
 // Тип для сообщения
 interface Message {
@@ -30,7 +31,22 @@ interface Order {
   details: string
   canDiscuss: boolean
   canDownload: boolean
-  chatMessages: Message[] // Обновлено
+  chatMessages: Message[]
+  adminHasUnreadMessages?: boolean
+  clientHasUnreadMessages?: boolean
+}
+
+interface SupportTicket {
+  id: string
+  name: string
+  email: string
+  subject: string
+  message: string
+  status: "Новое" | "В работе" | "Завершено" | "Отклонено"
+  date: string
+  isUnread: boolean // Для админа
+  clientHasUnreadMessages: boolean // Для клиента
+  chatMessages: Message[]
 }
 
 export default function ClientDashboardPage() {
@@ -38,6 +54,7 @@ export default function ClientDashboardPage() {
   const router = useRouter()
   const [clientOrders, setClientOrders] = useState<Order[]>([])
   const [currentClientEmail, setCurrentClientEmail] = useState<string | null>(null)
+  const [clientSupportTickets, setClientSupportTickets] = useState<SupportTicket[]>([]) // Новое состояние для обращений
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -52,12 +69,19 @@ export default function ClientDashboardPage() {
       const allOrders: Order[] = JSON.parse(localStorage.getItem("clientOrders") || "[]")
       const filteredOrders = allOrders.filter((order) => order.clientEmail === email)
       setClientOrders(filteredOrders)
+
+      const allTickets: SupportTicket[] = JSON.parse(localStorage.getItem("supportTickets") || "[]")
+      const filteredTickets = allTickets.filter((ticket) => ticket.email === email)
+      setClientSupportTickets(filteredTickets)
     }
 
     loadClientOrders()
     const interval = setInterval(loadClientOrders, 5000)
     return () => clearInterval(interval)
   }, [isAuthenticated, router])
+
+  const totalUnreadOrders = clientOrders.filter((order) => order.clientHasUnreadMessages).length
+  const totalUnreadSupportTickets = clientSupportTickets.filter((ticket) => ticket.clientHasUnreadMessages).length
 
   if (!isAuthenticated) {
     return null
@@ -78,7 +102,10 @@ export default function ClientDashboardPage() {
 
       <main className="flex-1 container mx-auto py-12 px-4 md:px-6">
         <div className="space-y-8">
-          <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white">Ваши Заказы</h2>
+          <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white">
+            Ваши Заказы
+            <NotificationBadge count={totalUnreadOrders} className="ml-2" />
+          </h2>
 
           {clientOrders.length === 0 ? (
             <p className="text-center text-gray-600 dark:text-gray-400">У вас пока нет активных заказов.</p>
@@ -105,8 +132,9 @@ export default function ClientDashboardPage() {
                     <div className="flex gap-2 mt-auto">
                       {order.canDiscuss && (
                         <Link href={`/dashboard/${order.id}/chat`} passHref>
-                          <Button size="sm" className="flex-1">
+                          <Button size="sm" className="flex-1 relative">
                             <MessageCircle className="h-4 w-4 mr-2" /> Обсудить
+                            <NotificationBadge count={order.clientHasUnreadMessages ? 1 : 0} />
                           </Button>
                         </Link>
                       )}
@@ -137,8 +165,9 @@ export default function ClientDashboardPage() {
               </Button>
             </Link>
             <Link href="/dashboard/support" passHref>
-              <Button variant="outline">
+              <Button variant="outline" className="relative">
                 <LifeBuoy className="h-4 w-4 mr-2" /> Поддержка (Чат)
+                <NotificationBadge count={totalUnreadSupportTickets} />
               </Button>
             </Link>
             <Link href="/contact" passHref>

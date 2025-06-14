@@ -28,7 +28,8 @@ interface SupportTicket {
   message: string
   status: "Новое" | "В работе" | "Завершено" | "Отклонено"
   date: string
-  isUnread: boolean
+  isUnread: boolean // Для админа
+  clientHasUnreadMessages: boolean // Для клиента
   chatMessages: Message[] // Обновлено
 }
 

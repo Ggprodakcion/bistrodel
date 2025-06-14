@@ -29,7 +29,9 @@ interface Order {
   details: string
   canDiscuss: boolean
   canDownload: boolean
-  chatMessages: Message[] // Обновлено
+  chatMessages: Message[]
+  adminHasUnreadMessages?: boolean // Добавлено
+  clientHasUnreadMessages?: boolean // Добавлено
 }
 
 export default function AdminOrderDetailPage() {
@@ -61,6 +63,7 @@ export default function AdminOrderDetailPage() {
           ...updatedOrders[orderIndex],
           status: "Завершено",
           canDownload: true,
+          clientHasUnreadMessages: true, // Уведомление для клиента о завершении
           chatMessages: [
             ...updatedOrders[orderIndex].chatMessages,
             {

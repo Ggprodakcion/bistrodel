@@ -16,6 +16,29 @@ import { PublicHeader } from "@/components/public-header"
 import { PublicFooter } from "@/components/public-footer"
 import { useAuth } from "@/components/auth-provider"
 
+interface Order {
+  id: string
+  service: string
+  status: string
+  date: string
+  clientName: string
+  clientEmail: string
+  clientPhone?: string
+  details: string
+  canDiscuss: boolean
+  canDownload: boolean
+  chatMessages: {
+    id: number
+    sender: "client" | "manager"
+    text?: string
+    fileUrl?: string
+    fileName?: string
+    timestamp: string
+  }[]
+  adminHasUnreadMessages?: boolean // Добавлено
+  clientHasUnreadMessages?: boolean // Добавлено
+}
+
 export default function OrderPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -62,7 +85,7 @@ export default function OrderPage() {
     const randomString = Math.random().toString(36).substring(2, 8).toUpperCase()
     const generatedOrderId = `ORDER-${today}-${randomString}`
 
-    const newOrder = {
+    const newOrder: Order = {
       id: generatedOrderId,
       service: serviceType,
       status: "Новый",
@@ -73,6 +96,8 @@ export default function OrderPage() {
       details: details,
       canDiscuss: true,
       canDownload: false,
+      adminHasUnreadMessages: true, // Уведомление для админа
+      clientHasUnreadMessages: false, // Уведомление для клиента
       chatMessages: [
         {
           id: 1,

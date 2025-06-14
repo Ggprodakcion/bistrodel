@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowLeft, Eye, Trash2, LifeBuoy, BarChart, MessageCircle } from "lucide-react"
+import { NotificationBadge } from "@/components/notification-badge" // Импорт NotificationBadge
 
 // Тип для сообщения
 interface Message {
@@ -31,7 +32,9 @@ interface Order {
   details: string
   canDiscuss: boolean
   canDownload: boolean
-  chatMessages: Message[] // Обновлено
+  chatMessages: Message[]
+  adminHasUnreadMessages?: boolean // Добавлено
+  clientHasUnreadMessages?: boolean // Добавлено
 }
 
 export default function AdminDashboardPage() {
@@ -123,6 +126,8 @@ export default function AdminDashboardPage() {
     return currentOrders
   }, [orders, filterStatus, sortKey])
 
+  const totalUnreadOrders = orders.filter((order) => order.adminHasUnreadMessages).length
+
   if (!isAuthenticated) {
     return null
   }
@@ -150,7 +155,10 @@ export default function AdminDashboardPage() {
 
       <main className="flex-1 container mx-auto py-12 px-4 md:px-6">
         <div className="space-y-8">
-          <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white">Управление Заказами</h2>
+          <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white">
+            Управление Заказами
+            <NotificationBadge count={totalUnreadOrders} className="ml-2" />
+          </h2>
 
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-4">
             <div className="flex gap-2">
@@ -234,8 +242,9 @@ export default function AdminDashboardPage() {
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
                               <Link href={`/dashboard/${order.id}/chat`} passHref>
-                                <Button variant="outline" size="sm">
+                                <Button variant="outline" size="sm" className="relative">
                                   <MessageCircle className="h-4 w-4 mr-1" /> Чат
+                                  <NotificationBadge count={order.adminHasUnreadMessages ? 1 : 0} />
                                 </Button>
                               </Link>
                               <Link href={`/admin/orders/${order.id}`} passHref>

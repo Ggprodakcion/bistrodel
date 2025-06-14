@@ -51,7 +51,8 @@ export default function ContactPage() {
       message,
       status: "Новое",
       date: new Date().toLocaleDateString("ru-RU"),
-      isUnread: true,
+      isUnread: true, // Уведомление для админа
+      clientHasUnreadMessages: false, // Уведомление для клиента
       chatMessages: [
         {
           id: 1,

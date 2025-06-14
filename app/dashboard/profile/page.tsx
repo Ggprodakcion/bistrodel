@@ -45,6 +45,8 @@ interface Order {
   canDiscuss: boolean
   canDownload: boolean
   chatMessages: Message[]
+  adminHasUnreadMessages?: boolean // Добавлено
+  clientHasUnreadMessages?: boolean // Добавлено
 }
 
 // Тип для обращения в поддержку (для очистки чатов при удалении аккаунта)
@@ -56,7 +58,8 @@ interface SupportTicket {
   message: string
   status: "Новое" | "В работе" | "Завершено" | "Отклонено"
   date: string
-  isUnread: boolean
+  isUnread: boolean // Для админа
+  clientHasUnreadMessages: boolean // Для клиента
   chatMessages: Message[]
 }
 

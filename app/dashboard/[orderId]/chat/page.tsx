@@ -38,6 +38,8 @@ interface Order {
   canDiscuss: boolean
   canDownload: boolean
   chatMessages: Message[]
+  adminHasUnreadMessages?: boolean // Добавлено
+  clientHasUnreadMessages?: boolean // Добавлено
 }
 
 export default function OrderChatPage() {
@@ -64,8 +66,16 @@ export default function OrderChatPage() {
       const currentClientEmail = localStorage.getItem("currentClientEmail")
 
       if (foundOrder && foundOrder.clientEmail === currentClientEmail) {
-        setOrder(foundOrder)
-        setMessages(foundOrder.chatMessages)
+        // При открытии чата клиентом, помечаем сообщения как прочитанные для клиента
+        const updatedOrder = { ...foundOrder, clientHasUnreadMessages: false }
+        setOrder(updatedOrder)
+        setMessages(updatedOrder.chatMessages)
+        updateOrderInLocalStorage(
+          updatedOrder.id,
+          updatedOrder.chatMessages,
+          updatedOrder.adminHasUnreadMessages,
+          false,
+        )
       } else {
         router.push("/dashboard")
       }
@@ -97,7 +107,8 @@ export default function OrderChatPage() {
       setMessages(updatedMessages)
       setNewMessage("")
 
-      updateOrderInLocalStorage(order.id, updatedMessages)
+      // Клиент отправил сообщение, админ теперь имеет непрочитанные сообщения
+      updateOrderInLocalStorage(order.id, updatedMessages, true, false)
 
       // Simulate manager's response
       setTimeout(() => {
@@ -109,7 +120,8 @@ export default function OrderChatPage() {
         }
         const finalMessages = [...updatedMessages, managerResponse]
         setMessages(finalMessages)
-        updateOrderInLocalStorage(order.id, finalMessages)
+        // Менеджер ответил, клиент теперь имеет непрочитанные сообщения
+        updateOrderInLocalStorage(order.id, finalMessages, false, true)
       }, 1500)
     }
   }
@@ -130,7 +142,8 @@ export default function OrderChatPage() {
       const updatedMessages = [...messages, newFileMsg]
       setMessages(updatedMessages)
 
-      updateOrderInLocalStorage(order.id, updatedMessages)
+      // Клиент отправил файл, админ теперь имеет непрочитанные сообщения
+      updateOrderInLocalStorage(order.id, updatedMessages, true, false)
 
       // Очищаем инпут файла
       if (fileInputRef.current) {
@@ -147,15 +160,28 @@ export default function OrderChatPage() {
         }
         const finalMessages = [...updatedMessages, managerResponse]
         setMessages(finalMessages)
-        updateOrderInLocalStorage(order.id, finalMessages)
+        // Менеджер ответил, клиент теперь имеет непрочитанные сообщения
+        updateOrderInLocalStorage(order.id, finalMessages, false, true)
       }, 1500)
     }
   }
 
-  const updateOrderInLocalStorage = (currentOrderId: string, updatedMessages: Message[]) => {
+  const updateOrderInLocalStorage = (
+    currentOrderId: string,
+    updatedMessages: Message[],
+    adminUnread: boolean,
+    clientUnread: boolean,
+  ) => {
     const storedOrders: Order[] = JSON.parse(localStorage.getItem("clientOrders") || "[]")
     const updatedOrders = storedOrders.map((o) =>
-      o.id === currentOrderId ? { ...o, chatMessages: updatedMessages } : o,
+      o.id === currentOrderId
+        ? {
+            ...o,
+            chatMessages: updatedMessages,
+            adminHasUnreadMessages: adminUnread,
+            clientHasUnreadMessages: clientUnread,
+          }
+        : o,
     )
     localStorage.setItem("clientOrders", JSON.stringify(updatedOrders))
   }

@@ -32,7 +32,8 @@ interface SupportTicket {
   message: string
   status: "Новое" | "В работе" | "Завершено" | "Отклонено"
   date: string
-  isUnread: boolean
+  isUnread: boolean // Для админа
+  clientHasUnreadMessages: boolean // Для клиента
   chatMessages: Message[]
 }
 
@@ -52,8 +53,16 @@ export default function AdminSupportChatPage() {
       const storedTickets: SupportTicket[] = JSON.parse(localStorage.getItem("supportTickets") || "[]")
       const foundTicket = storedTickets.find((t) => t.id === ticketId)
       if (foundTicket) {
-        setTicket(foundTicket)
-        setMessages(foundTicket.chatMessages)
+        // При открытии чата админом, помечаем сообщения как прочитанные для админа
+        const updatedTicket = { ...foundTicket, isUnread: false }
+        setTicket(updatedTicket)
+        setMessages(updatedTicket.chatMessages)
+        updateTicketInLocalStorage(
+          updatedTicket.id,
+          updatedTicket.chatMessages,
+          false,
+          updatedTicket.clientHasUnreadMessages,
+        )
       } else {
         router.push("/admin/support")
       }
@@ -85,7 +94,8 @@ export default function AdminSupportChatPage() {
       setMessages(updatedMessages)
       setNewMessage("")
 
-      updateTicketInLocalStorage(ticket.id, updatedMessages)
+      // Админ отправил сообщение, клиент теперь имеет непрочитанные сообщения
+      updateTicketInLocalStorage(ticket.id, updatedMessages, false, true)
     }
   }
 
@@ -105,7 +115,8 @@ export default function AdminSupportChatPage() {
       const updatedMessages = [...messages, newFileMsg]
       setMessages(updatedMessages)
 
-      updateTicketInLocalStorage(ticket.id, updatedMessages)
+      // Админ отправил файл, клиент теперь имеет непрочитанные сообщения
+      updateTicketInLocalStorage(ticket.id, updatedMessages, false, true)
 
       // Очищаем инпут файла
       if (fileInputRef.current) {
@@ -114,10 +125,17 @@ export default function AdminSupportChatPage() {
     }
   }
 
-  const updateTicketInLocalStorage = (currentTicketId: string, updatedMessages: Message[]) => {
+  const updateTicketInLocalStorage = (
+    currentTicketId: string,
+    updatedMessages: Message[],
+    adminUnread: boolean,
+    clientUnread: boolean,
+  ) => {
     const storedTickets: SupportTicket[] = JSON.parse(localStorage.getItem("supportTickets") || "[]")
     const updatedTickets = storedTickets.map((t) =>
-      t.id === currentTicketId ? { ...t, chatMessages: updatedMessages } : t,
+      t.id === currentTicketId
+        ? { ...t, chatMessages: updatedMessages, isUnread: adminUnread, clientHasUnreadMessages: clientUnread }
+        : t,
     )
     localStorage.setItem("supportTickets", JSON.stringify(updatedTickets))
   }

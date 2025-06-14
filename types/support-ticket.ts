@@ -6,6 +6,14 @@ export interface SupportTicket {
   message: string
   status: "Новое" | "В работе" | "Завершено" | "Отклонено"
   date: string
-  isUnread: boolean
-  chatMessages: { id: number; sender: "client" | "manager"; text: string; timestamp: string }[]
+  isUnread: boolean // Это поле будет использоваться для админа (adminHasUnreadMessages)
+  clientHasUnreadMessages: boolean // Новое поле для клиента
+  chatMessages: {
+    id: number
+    sender: "client" | "manager"
+    text?: string
+    fileUrl?: string
+    fileName?: string
+    timestamp: string
+  }[]
 }

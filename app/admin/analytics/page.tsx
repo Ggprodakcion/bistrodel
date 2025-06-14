@@ -42,6 +42,8 @@ interface Order {
   canDiscuss: boolean
   canDownload: boolean
   chatMessages: Message[]
+  adminHasUnreadMessages?: boolean // Добавлено
+  clientHasUnreadMessages?: boolean // Добавлено
 }
 
 interface SupportTicket {
@@ -52,7 +54,8 @@ interface SupportTicket {
   message: string
   status: "Новое" | "В работе" | "Завершено" | "Отклонено"
   date: string
-  isUnread: boolean
+  isUnread: boolean // Для админа
+  clientHasUnreadMessages: boolean // Для клиента
   chatMessages: { id: number; sender: "client" | "manager"; text: string; timestamp: string }[]
 }
 

@@ -9,41 +9,36 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuth } from "@/components/auth-provider"
-import { Loader2 } from "lucide-react" // Импортируем Loader2 icon
+import { Loader2 } from "lucide-react"
 
 export default function AdminLoginPage() {
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(false) // Новое состояние загрузки
+  const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
   const { login } = useAuth()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
-    setIsLoading(true) // Начинаем загрузку
+    setIsLoading(true)
 
     try {
-      // Симулируем API-вызов для аутентификации
-      // В реальном приложении это был бы fetch к вашему бэкенд API
+      // Пароль администратора берется из переменной окружения NEXT_PUBLIC_ADMIN_PASSWORD
+      // Если переменная не установлена, используется значение по умолчанию "admin123"
       const adminPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "admin123"
       const response = await new Promise((resolve, reject) => {
         setTimeout(() => {
           if (password === adminPassword) {
             resolve({ success: true })
           } else {
-            reject(new Error("Неверный пароль администратора.")) // Симулируем ошибку API
+            reject(new Error("Неверный пароль администратора."))
           }
         }, 1000)
       })
 
-      // Раскомментируйте для тестирования NetworkError:
-      // if (Math.random() < 0.5) {
-      //   throw new TypeError("NetworkError when attempting to fetch resource.");
-      // }
-
       if ((response as { success: boolean }).success) {
-        login("admin", "admin") // Используем функцию login из контекста аутентификации
+        login("admin", "admin")
         router.push("/admin")
       } else {
         setError("Неверный пароль администратора.")
@@ -58,7 +53,7 @@ export default function AdminLoginPage() {
       }
       console.error("Admin login error:", err)
     } finally {
-      setIsLoading(false) // Завершаем загрузку
+      setIsLoading(false)
     }
   }
 

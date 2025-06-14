@@ -28,26 +28,25 @@ export default function LoginPage() {
     try {
       // Симулируем API-вызов для аутентификации
       // В реальном приложении это был бы fetch к вашему бэкенд API
-      const response = await new Promise((resolve, reject) => {
+      const simulatedApiSuccess = await new Promise<boolean>((resolve, reject) => {
         setTimeout(() => {
           if (email === "client@example.com" && password === "password") {
-            resolve({ success: true })
+            resolve(true)
           } else {
             reject(new Error("Неверный email или пароль.")) // Симулируем ошибку API
           }
         }, 1000)
       })
 
-      // Раскомментируйте для тестирования NetworkError:
-      // if (Math.random() < 0.5) {
-      //   throw new TypeError("NetworkError when attempting to fetch resource.");
-      // }
-
-      if ((response as { success: boolean }).success) {
-        login(email, "client") // Используем функцию login из контекста аутентификации
-        router.push("/dashboard")
-      } else {
-        setError("Неверный email или пароль.")
+      if (simulatedApiSuccess) {
+        // !!! ИСПРАВЛЕНО: Передаем email, password и тип пользователя
+        if (login(email, password, "client")) {
+          router.push("/dashboard")
+        } else {
+          // Это сработает, если пользователь не зарегистрирован в localStorage
+          // даже если симуляция API прошла успешно
+          setError("Пользователь не найден или неверный пароль (проверьте регистрацию).")
+        }
       }
     } catch (err) {
       if (err instanceof TypeError && err.message.includes("NetworkError")) {

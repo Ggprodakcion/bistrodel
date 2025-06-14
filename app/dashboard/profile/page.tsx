@@ -4,13 +4,13 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation" // Импортируем useRouter
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, Save, User } from "lucide-react"
-import { useAuth } from "@/components/auth-provider" // Импортируем useAuth
+import { ArrowLeft, Save, User, KeyRound, Trash2 } from "lucide-react" // Добавляем новые иконки
+import { useAuth } from "@/components/auth-provider"
 
 // Тип для профиля пользователя
 interface UserProfile {
@@ -19,6 +19,7 @@ interface UserProfile {
   email: string
   phone: string
   address: string
+  lastUpdated?: string // Добавляем поле для даты последнего обновления
 }
 
 export default function ClientProfilePage() {
@@ -26,52 +27,57 @@ export default function ClientProfilePage() {
   const router = useRouter()
 
   const [profile, setProfile] = useState<UserProfile>({
-    id: "CLIENT-12345", // Моковый ID клиента
+    id: "CLIENT-12345",
     name: "",
     email: "",
     phone: "",
     address: "",
+    lastUpdated: "",
   })
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [passwordChange, setPasswordChange] = useState({
+    current: "",
+    new: "",
+    confirmNew: "",
+  })
+  const [passwordError, setPasswordError] = useState("")
+  const [passwordSuccess, setPasswordSuccess] = useState("")
 
   useEffect(() => {
     if (!isAuthenticated) {
-      router.push("/dashboard/login") // Перенаправляем на страницу входа, если не аутентифицирован
+      router.push("/dashboard/login")
       return
     }
 
-    // Загрузка данных профиля из localStorage при монтировании компонента
     const storedProfile = localStorage.getItem("clientProfile")
-    const currentClientEmail = localStorage.getItem("currentClientEmail") // Получаем email текущего пользователя
+    const currentClientEmail = localStorage.getItem("currentClientEmail")
 
     if (storedProfile) {
       const parsedProfile = JSON.parse(storedProfile)
-      // Если профиль в localStorage не соответствует текущему пользователю,
-      // или если профиль не содержит email, инициализируем новый
       if (parsedProfile.email === currentClientEmail) {
         setProfile(parsedProfile)
       } else {
-        // Если профиль не соответствует, создаем новый или загружаем по email
         const initialProfile: UserProfile = {
-          id: `CLIENT-${Date.now()}`, // Генерируем новый ID
+          id: `CLIENT-${Date.now()}`,
           name: "Новый Пользователь",
-          email: currentClientEmail || "", // Используем email из аутентификации
+          email: currentClientEmail || "",
           phone: "",
           address: "",
+          lastUpdated: new Date().toLocaleString("ru-RU"),
         }
         setProfile(initialProfile)
         localStorage.setItem("clientProfile", JSON.stringify(initialProfile))
       }
     } else {
-      // Если профиля нет, инициализируем его моковыми данными
       const initialProfile: UserProfile = {
         id: `CLIENT-${Date.now()}`,
         name: "Новый Пользователь",
         email: currentClientEmail || "",
         phone: "",
         address: "",
+        lastUpdated: new Date().toLocaleString("ru-RU"),
       }
       setProfile(initialProfile)
       localStorage.setItem("clientProfile", JSON.stringify(initialProfile))
@@ -91,15 +97,74 @@ export default function ClientProfilePage() {
     setSaveSuccess(false)
     // Симуляция сохранения данных на сервере
     await new Promise((resolve) => setTimeout(resolve, 1000))
-    localStorage.setItem("clientProfile", JSON.stringify(profile))
+    const updatedProfile = { ...profile, lastUpdated: new Date().toLocaleString("ru-RU") }
+    localStorage.setItem("clientProfile", JSON.stringify(updatedProfile))
+    setProfile(updatedProfile)
     setIsSaving(false)
     setIsEditing(false)
     setSaveSuccess(true)
-    setTimeout(() => setSaveSuccess(false), 3000) // Скрыть сообщение об успехе через 3 секунды
+    setTimeout(() => setSaveSuccess(false), 3000)
+  }
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setPasswordError("")
+    setPasswordSuccess("")
+
+    // ВНИМАНИЕ: Это упрощенная симуляция. В реальном приложении используйте API.
+    const storedUsers = JSON.parse(localStorage.getItem("clientUsers") || "[]")
+    const currentUserEmail = localStorage.getItem("currentClientEmail")
+    const userIndex = storedUsers.findIndex((u: any) => u.email === currentUserEmail)
+
+    if (userIndex === -1) {
+      setPasswordError("Пользователь не найден.")
+      return
+    }
+
+    const currentUser = storedUsers[userIndex]
+
+    if (currentUser.password !== passwordChange.current) {
+      setPasswordError("Текущий пароль неверен.")
+      return
+    }
+
+    if (passwordChange.new.length < 6) {
+      setPasswordError("Новый пароль должен быть не менее 6 символов.")
+      return
+    }
+
+    if (passwordChange.new !== passwordChange.confirmNew) {
+      setPasswordError("Новый пароль и подтверждение не совпадают.")
+      return
+    }
+
+    // Симуляция обновления пароля
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+    currentUser.password = passwordChange.new // Обновляем пароль
+    storedUsers[userIndex] = currentUser
+    localStorage.setItem("clientUsers", JSON.stringify(storedUsers))
+
+    setPasswordSuccess("Пароль успешно изменен!")
+    setPasswordChange({ current: "", new: "", confirmNew: "" })
+    setTimeout(() => setPasswordSuccess(""), 3000)
+  }
+
+  const handleDeleteAccount = () => {
+    if (window.confirm("Вы уверены, что хотите удалить свой аккаунт? Это действие необратимо.")) {
+      // ВНИМАНИЕ: Это упрощенная симуляция. В реальном приложении используйте API.
+      const storedUsers = JSON.parse(localStorage.getItem("clientUsers") || "[]")
+      const currentUserEmail = localStorage.getItem("currentClientEmail")
+      const updatedUsers = storedUsers.filter((u: any) => u.email !== currentUserEmail)
+      localStorage.setItem("clientUsers", JSON.stringify(updatedUsers))
+
+      localStorage.removeItem("clientProfile")
+      logout() // Выходим из системы после удаления
+      alert("Ваш аккаунт был успешно удален.")
+    }
   }
 
   if (!isAuthenticated) {
-    return null // Или лоадер, пока идет перенаправление
+    return null
   }
 
   return (
@@ -114,18 +179,13 @@ export default function ClientProfilePage() {
           <span>В личный кабинет</span>
         </Link>
         <h1 className="text-2xl font-bold">Мой Профиль</h1>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={logout} // Добавляем кнопку выхода
-          className="text-white border-white hover:bg-gray-700"
-        >
+        <Button variant="outline" size="sm" onClick={logout} className="text-white border-white hover:bg-gray-700">
           Выйти
         </Button>
       </header>
 
-      <main className="flex-1 container mx-auto py-12 px-4 md:px-6 flex flex-col items-center justify-center">
-        <Card className="w-full max-w-2xl rounded-xl shadow-xl">
+      <main className="flex-1 container mx-auto py-12 px-4 md:px-6 flex flex-col items-center">
+        <Card className="w-full max-w-3xl rounded-xl shadow-xl mb-8">
           <CardHeader>
             <CardTitle className="text-2xl flex items-center gap-2">
               <User className="h-6 w-6" /> Личные данные
@@ -133,14 +193,25 @@ export default function ClientProfilePage() {
             <CardDescription>Просматривайте и редактируйте информацию о вашем аккаунте.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            <div className="flex flex-col items-center gap-4 mb-6">
+              <div className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-primary">
+                <img
+                  src="/placeholder.svg?height=96&width=96"
+                  alt="Аватар пользователя"
+                  className="object-cover w-full h-full"
+                />
+                {/* Можно добавить кнопку для загрузки нового аватара */}
+              </div>
+              <p className="text-lg font-semibold">{profile.name || "Имя не указано"}</p>
+              {profile.lastUpdated && (
+                <p className="text-sm text-gray-500 dark:text-gray-400">Последнее обновление: {profile.lastUpdated}</p>
+              )}
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="id">ID Клиента</Label>
                 <Input id="id" value={profile.id} disabled className="bg-gray-50 dark:bg-gray-800" />
-              </div>
-              <div>
-                <Label htmlFor="name">Имя</Label>
-                <Input id="name" value={profile.name} onChange={handleChange} disabled={!isEditing} required />
               </div>
               <div>
                 <Label htmlFor="email">Email</Label>
@@ -149,9 +220,14 @@ export default function ClientProfilePage() {
                   type="email"
                   value={profile.email}
                   onChange={handleChange}
-                  disabled={true} // Email не должен быть редактируемым после регистрации
+                  disabled={true}
+                  className="bg-gray-50 dark:bg-gray-800"
                   required
                 />
+              </div>
+              <div>
+                <Label htmlFor="name">Имя</Label>
+                <Input id="name" value={profile.name} onChange={handleChange} disabled={!isEditing} required />
               </div>
               <div>
                 <Label htmlFor="phone">Телефон</Label>
@@ -188,6 +264,73 @@ export default function ClientProfilePage() {
             {saveSuccess && (
               <p className="text-center text-green-600 dark:text-green-400 mt-4">Данные успешно сохранены!</p>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Change Password Section */}
+        <Card className="w-full max-w-3xl rounded-xl shadow-xl mb-8">
+          <CardHeader>
+            <CardTitle className="text-2xl flex items-center gap-2">
+              <KeyRound className="h-6 w-6" /> Изменить пароль
+            </CardTitle>
+            <CardDescription>Обновите свой пароль для повышения безопасности.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handlePasswordChange} className="space-y-4">
+              <div>
+                <Label htmlFor="current-password">Текущий пароль</Label>
+                <Input
+                  id="current-password"
+                  type="password"
+                  value={passwordChange.current}
+                  onChange={(e) => setPasswordChange({ ...passwordChange, current: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="new-password">Новый пароль</Label>
+                <Input
+                  id="new-password"
+                  type="password"
+                  value={passwordChange.new}
+                  onChange={(e) => setPasswordChange({ ...passwordChange, new: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="confirm-new-password">Подтвердите новый пароль</Label>
+                <Input
+                  id="confirm-new-password"
+                  type="password"
+                  value={passwordChange.confirmNew}
+                  onChange={(e) => setPasswordChange({ ...passwordChange, confirmNew: e.target.value })}
+                  required
+                />
+              </div>
+              {passwordError && <p className="text-red-500 text-sm">{passwordError}</p>}
+              {passwordSuccess && <p className="text-green-600 text-sm">{passwordSuccess}</p>}
+              <Button type="submit" className="w-full">
+                Изменить пароль
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* Danger Zone Section */}
+        <Card className="w-full max-w-3xl rounded-xl shadow-xl border-destructive/50">
+          <CardHeader>
+            <CardTitle className="text-2xl flex items-center gap-2 text-destructive">
+              <Trash2 className="h-6 w-6" /> Зона Опасности
+            </CardTitle>
+            <CardDescription>Действия, которые могут повлиять на ваш аккаунт.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex justify-between items-center">
+              <p className="text-gray-700 dark:text-gray-300">Удалить аккаунт безвозвратно.</p>
+              <Button variant="destructive" onClick={handleDeleteAccount}>
+                Удалить аккаунт
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </main>

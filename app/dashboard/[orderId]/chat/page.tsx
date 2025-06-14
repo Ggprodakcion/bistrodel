@@ -22,9 +22,10 @@ import {
   FileArchive,
   FileSpreadsheet,
   FileQuestion,
+  Loader2,
 } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog" // Импортируем Dialog компоненты
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
 
 interface Message {
   id: number
@@ -95,6 +96,7 @@ export default function OrderChatPage() {
   const [order, setOrder] = useState<Order | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState("")
+  const [isUploadingFile, setIsUploadingFile] = useState(false) // Новое состояние
   const fileInputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -139,7 +141,8 @@ export default function OrderChatPage() {
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault()
-    if (newMessage.trim() && order) {
+    if (newMessage.trim() && order && !isUploadingFile) {
+      // Отключаем отправку во время загрузки файла
       const newMsg: Message = {
         id: messages.length + 1,
         sender: "client",
@@ -169,6 +172,7 @@ export default function OrderChatPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file && order) {
+      setIsUploadingFile(true) // Начинаем загрузку
       const reader = new FileReader()
       reader.onloadend = () => {
         const fileDataUrl = reader.result as string
@@ -198,6 +202,7 @@ export default function OrderChatPage() {
           const finalMessages = [...updatedMessages, managerResponse]
           setMessages(finalMessages)
           updateOrderInLocalStorage(order.id, finalMessages, false, true)
+          setIsUploadingFile(false) // Завершаем загрузку после симуляции ответа
         }, 1500)
       }
       reader.readAsDataURL(file)
@@ -313,6 +318,7 @@ export default function OrderChatPage() {
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 className="flex-1"
+                disabled={isUploadingFile} // Отключаем ввод текста во время загрузки
               />
               <input
                 type="file"
@@ -320,14 +326,15 @@ export default function OrderChatPage() {
                 onChange={handleFileChange}
                 className="hidden"
                 id="file-upload-client"
+                disabled={isUploadingFile} // Отключаем инпут файла во время загрузки
               />
               <Label htmlFor="file-upload-client" className="cursor-pointer">
-                <Button type="button" variant="outline" size="icon">
-                  <Paperclip className="h-4 w-4" />
+                <Button type="button" variant="outline" size="icon" disabled={isUploadingFile}>
+                  {isUploadingFile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
                   <span className="sr-only">Прикрепить файл</span>
                 </Button>
               </Label>
-              <Button type="submit" disabled={!newMessage.trim()}>
+              <Button type="submit" disabled={!newMessage.trim() || isUploadingFile}>
                 <Send className="h-4 w-4" />
                 <span className="sr-only">Отправить</span>
               </Button>

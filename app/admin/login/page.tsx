@@ -26,9 +26,10 @@ export default function AdminLoginPage() {
     try {
       // Симулируем API-вызов для аутентификации
       // В реальном приложении это был бы fetch к вашему бэкенд API
+      const adminPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "admin123"
       const response = await new Promise((resolve, reject) => {
         setTimeout(() => {
-          if (password === process.env.NEXT_PUBLIC_ADMIN_PASSWORD) {
+          if (password === adminPassword) {
             resolve({ success: true })
           } else {
             reject(new Error("Неверный пароль администратора.")) // Симулируем ошибку API

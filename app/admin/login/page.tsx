@@ -24,9 +24,11 @@ export default function AdminLoginPage() {
     setIsLoading(true)
 
     try {
-      // Пароль администратора берется из переменной окружения NEXT_PUBLIC_ADMIN_PASSWORD
-      // ЕСЛИ ПЕРЕМЕННАЯ НЕ УСТАНОВЛЕНА ИЛИ ПУСТА, ИСПОЛЬЗУЕТСЯ ЗНАЧЕНИЕ ПО УМОЛЧАНИЮ "admin123"
       const adminPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "admin123"
+      // ВРЕМЕННЫЙ КОНСОЛЬНЫЙ ВЫВОД ДЛЯ ОТЛАДКИ:
+      console.log("Admin password (from env or default):", adminPassword)
+      // УДАЛИТЕ ЭТУ СТРОКУ ПОСЛЕ РЕШЕНИЯ ПРОБЛЕМЫ!
+
       const response = await new Promise((resolve, reject) => {
         setTimeout(() => {
           if (password === adminPassword) {

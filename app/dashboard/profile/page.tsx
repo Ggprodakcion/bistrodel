@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, Save, User, KeyRound, Trash2 } from "lucide-react" // Добавляем новые иконки
+import { ArrowLeft, Save, User, KeyRound, Trash2 } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 
 // Тип для профиля пользователя
@@ -19,7 +19,45 @@ interface UserProfile {
   email: string
   phone: string
   address: string
-  lastUpdated?: string // Добавляем поле для даты последнего обновления
+  lastUpdated?: string
+}
+
+// Тип для сообщения (для очистки чатов при удалении аккаунта)
+interface Message {
+  id: number
+  sender: "client" | "manager"
+  text?: string
+  fileUrl?: string
+  fileName?: string
+  timestamp: string
+}
+
+// Тип для заказа (для очистки чатов при удалении аккаунта)
+interface Order {
+  id: string
+  service: string
+  status: string
+  date: string
+  clientName: string
+  clientEmail: string
+  clientPhone?: string
+  details: string
+  canDiscuss: boolean
+  canDownload: boolean
+  chatMessages: Message[]
+}
+
+// Тип для обращения в поддержку (для очистки чатов при удалении аккаунта)
+interface SupportTicket {
+  id: string
+  name: string
+  email: string
+  subject: string
+  message: string
+  status: "Новое" | "В работе" | "Завершено" | "Отклонено"
+  date: string
+  isUnread: boolean
+  chatMessages: Message[]
 }
 
 export default function ClientProfilePage() {
@@ -95,7 +133,6 @@ export default function ClientProfilePage() {
   const handleSave = async () => {
     setIsSaving(true)
     setSaveSuccess(false)
-    // Симуляция сохранения данных на сервере
     await new Promise((resolve) => setTimeout(resolve, 1000))
     const updatedProfile = { ...profile, lastUpdated: new Date().toLocaleString("ru-RU") }
     localStorage.setItem("clientProfile", JSON.stringify(updatedProfile))
@@ -111,7 +148,6 @@ export default function ClientProfilePage() {
     setPasswordError("")
     setPasswordSuccess("")
 
-    // ВНИМАНИЕ: Это упрощенная симуляция. В реальном приложении используйте API.
     const storedUsers = JSON.parse(localStorage.getItem("clientUsers") || "[]")
     const currentUserEmail = localStorage.getItem("currentClientEmail")
     const userIndex = storedUsers.findIndex((u: any) => u.email === currentUserEmail)
@@ -138,9 +174,8 @@ export default function ClientProfilePage() {
       return
     }
 
-    // Симуляция обновления пароля
     await new Promise((resolve) => setTimeout(resolve, 1000))
-    currentUser.password = passwordChange.new // Обновляем пароль
+    currentUser.password = passwordChange.new
     storedUsers[userIndex] = currentUser
     localStorage.setItem("clientUsers", JSON.stringify(storedUsers))
 
@@ -151,14 +186,24 @@ export default function ClientProfilePage() {
 
   const handleDeleteAccount = () => {
     if (window.confirm("Вы уверены, что хотите удалить свой аккаунт? Это действие необратимо.")) {
-      // ВНИМАНИЕ: Это упрощенная симуляция. В реальном приложении используйте API.
       const storedUsers = JSON.parse(localStorage.getItem("clientUsers") || "[]")
       const currentUserEmail = localStorage.getItem("currentClientEmail")
       const updatedUsers = storedUsers.filter((u: any) => u.email !== currentUserEmail)
       localStorage.setItem("clientUsers", JSON.stringify(updatedUsers))
 
+      // Удаляем профиль
       localStorage.removeItem("clientProfile")
-      logout() // Выходим из системы после удаления
+
+      // Удаляем заказы и обращения, связанные с этим email
+      const allOrders: Order[] = JSON.parse(localStorage.getItem("clientOrders") || "[]")
+      const remainingOrders = allOrders.filter((order) => order.clientEmail !== currentUserEmail)
+      localStorage.setItem("clientOrders", JSON.stringify(remainingOrders))
+
+      const allTickets: SupportTicket[] = JSON.parse(localStorage.getItem("supportTickets") || "[]")
+      const remainingTickets = allTickets.filter((ticket) => ticket.email !== currentUserEmail)
+      localStorage.setItem("supportTickets", JSON.stringify(remainingTickets))
+
+      logout()
       alert("Ваш аккаунт был успешно удален.")
     }
   }
@@ -200,7 +245,6 @@ export default function ClientProfilePage() {
                   alt="Аватар пользователя"
                   className="object-cover w-full h-full"
                 />
-                {/* Можно добавить кнопку для загрузки нового аватара */}
               </div>
               <p className="text-lg font-semibold">{profile.name || "Имя не указано"}</p>
               {profile.lastUpdated && (
@@ -267,7 +311,6 @@ export default function ClientProfilePage() {
           </CardContent>
         </Card>
 
-        {/* Change Password Section */}
         <Card className="w-full max-w-3xl rounded-xl shadow-xl mb-8">
           <CardHeader>
             <CardTitle className="text-2xl flex items-center gap-2">
@@ -316,7 +359,6 @@ export default function ClientProfilePage() {
           </CardContent>
         </Card>
 
-        {/* Danger Zone Section */}
         <Card className="w-full max-w-3xl rounded-xl shadow-xl border-destructive/50">
           <CardHeader>
             <CardTitle className="text-2xl flex items-center gap-2 text-destructive">
@@ -335,7 +377,6 @@ export default function ClientProfilePage() {
         </Card>
       </main>
 
-      {/* Footer (re-using from landing page for consistency) */}
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t bg-gray-950 text-gray-400">
         <p className="text-xs">&copy; 2025 БыстроДел. Все права защищены.</p>
         <nav className="sm:ml-auto flex gap-4 sm:gap-6">

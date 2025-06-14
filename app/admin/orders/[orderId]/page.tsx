@@ -7,6 +7,16 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeft, MessageCircle, CheckCircle } from "lucide-react"
 import { useEffect, useState } from "react"
 
+// Тип для сообщения
+interface Message {
+  id: number
+  sender: "client" | "manager"
+  text?: string
+  fileUrl?: string
+  fileName?: string
+  timestamp: string
+}
+
 // Тип для заказа
 interface Order {
   id: string
@@ -19,7 +29,7 @@ interface Order {
   details: string
   canDiscuss: boolean
   canDownload: boolean
-  chatMessages: { id: number; sender: "client" | "manager"; text: string; timestamp: string }[]
+  chatMessages: Message[] // Обновлено
 }
 
 export default function AdminOrderDetailPage() {
@@ -35,7 +45,7 @@ export default function AdminOrderDetailPage() {
     if (foundOrder) {
       setOrder(foundOrder)
     } else {
-      router.push("/admin") // Перенаправляем, если заказ не найден
+      router.push("/admin")
     }
   }, [orderId, router])
 
@@ -50,7 +60,7 @@ export default function AdminOrderDetailPage() {
         const updatedOrder = {
           ...updatedOrders[orderIndex],
           status: "Завершено",
-          canDownload: true, // Разрешаем скачивание для клиента
+          canDownload: true,
           chatMessages: [
             ...updatedOrders[orderIndex].chatMessages,
             {
@@ -63,7 +73,7 @@ export default function AdminOrderDetailPage() {
         }
         updatedOrders[orderIndex] = updatedOrder
         localStorage.setItem("clientOrders", JSON.stringify(updatedOrders))
-        setOrder(updatedOrder) // Обновляем состояние компонента
+        setOrder(updatedOrder)
         alert(`Заказ №${order.id.split("-")[1]} успешно завершен!`)
       }
     }
@@ -95,7 +105,7 @@ export default function AdminOrderDetailPage() {
           <span>К заказам</span>
         </Link>
         <h1 className="text-2xl font-bold">Детали Заказа №{order.id.split("-")[1]}</h1>
-        <div className="w-10" /> {/* Placeholder for alignment */}
+        <div className="w-10" />
       </header>
 
       <main className="flex-1 container mx-auto py-12 px-4 md:px-6">

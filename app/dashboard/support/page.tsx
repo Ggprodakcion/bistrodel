@@ -10,6 +10,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, MessageCircle, LifeBuoy } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 
+// Тип для сообщения
+interface Message {
+  id: number
+  sender: "client" | "manager"
+  text?: string
+  fileUrl?: string
+  fileName?: string
+  timestamp: string
+}
+
 interface SupportTicket {
   id: string
   name: string
@@ -19,7 +29,7 @@ interface SupportTicket {
   status: "Новое" | "В работе" | "Завершено" | "Отклонено"
   date: string
   isUnread: boolean
-  chatMessages: { id: number; sender: "client" | "manager"; text: string; timestamp: string }[]
+  chatMessages: Message[] // Обновлено
 }
 
 export default function ClientSupportPage() {
@@ -46,20 +56,17 @@ export default function ClientSupportPage() {
     }
 
     loadTickets()
-    const interval = setInterval(loadTickets, 5000) // Обновляем тикеты каждые 5 секунд
+    const interval = setInterval(loadTickets, 5000)
     return () => clearInterval(interval)
   }, [isAuthenticated, router])
 
-  // Фильтрация и сортировка обращений
   const filteredAndSortedTickets = useMemo(() => {
     let currentTickets = [...tickets]
 
-    // Фильтрация
     if (filterStatus !== "Все") {
       currentTickets = currentTickets.filter((ticket) => ticket.status === filterStatus)
     }
 
-    // Сортировка
     currentTickets.sort((a, b) => {
       switch (sortKey) {
         case "date-desc":

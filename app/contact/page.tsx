@@ -12,7 +12,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Mail, Phone } from "lucide-react"
 import { PublicHeader } from "@/components/public-header"
 import { PublicFooter } from "@/components/public-footer"
-import { useAuth } from "@/components/auth-provider" // Импортируем useAuth
+import { useAuth } from "@/components/auth-provider"
 
 export default function ContactPage() {
   const { isAuthenticated } = useAuth()
@@ -103,7 +103,6 @@ export default function ContactPage() {
       <PublicHeader />
       <main className="flex-1 container mx-auto py-12 px-4 md:px-6">
         <div className="grid gap-12 lg:grid-cols-2">
-          {/* FAQ Section */}
           <div className="space-y-8">
             <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white">Часто задаваемые вопросы</h2>
             <Accordion type="single" collapsible className="w-full">
@@ -116,7 +115,6 @@ export default function ContactPage() {
             </Accordion>
           </div>
 
-          {/* Contact Form Section */}
           <div className="space-y-8">
             <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white">Связаться с нами</h2>
             <Card className="w-full rounded-xl shadow-xl">
@@ -159,7 +157,7 @@ export default function ContactPage() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required
-                        disabled={isAuthenticated} // Если аутентифицирован, email не редактируется
+                        disabled={isAuthenticated}
                       />
                     </div>
                     <div>

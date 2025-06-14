@@ -14,13 +14,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft } from "lucide-react"
 import { PublicHeader } from "@/components/public-header"
 import { PublicFooter } from "@/components/public-footer"
-import { useAuth } from "@/components/auth-provider" // Импортируем useAuth
+import { useAuth } from "@/components/auth-provider"
 
 export default function OrderPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const initialService = searchParams.get("service") || ""
-  const { isAuthenticated } = useAuth() // Получаем статус аутентификации
+  const { isAuthenticated } = useAuth()
 
   const [serviceType, setServiceType] = useState(initialService)
   const [name, setName] = useState("")
@@ -39,7 +39,6 @@ export default function OrderPage() {
       setServiceType("Общая услуга")
     }
 
-    // Если пользователь аутентифицирован, подставляем его email
     if (isAuthenticated) {
       const currentClientEmail = localStorage.getItem("currentClientEmail")
       if (currentClientEmail) {
@@ -66,11 +65,11 @@ export default function OrderPage() {
     const newOrder = {
       id: generatedOrderId,
       service: serviceType,
-      status: "Новый", // Начальный статус
+      status: "Новый",
       date: new Date().toISOString().slice(0, 10),
       clientName: name,
       clientEmail: email,
-      clientPhone: "", // Пока не запрашиваем, можно добавить в форму
+      clientPhone: "",
       details: details,
       canDiscuss: true,
       canDownload: false,
@@ -84,7 +83,6 @@ export default function OrderPage() {
       ],
     }
 
-    // Сохраняем новый заказ в localStorage
     const existingOrders = JSON.parse(localStorage.getItem("clientOrders") || "[]")
     localStorage.setItem("clientOrders", JSON.stringify([...existingOrders, newOrder]))
 
@@ -171,7 +169,7 @@ export default function OrderPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  disabled={isAuthenticated} // Если аутентифицирован, email не редактируется
+                  disabled={isAuthenticated}
                 />
               </div>
               <div>

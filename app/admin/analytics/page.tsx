@@ -19,69 +19,30 @@ import {
 } from "recharts"
 import { useRouter } from "next/navigation"
 
-// Моковые данные для заказов (должны быть такими же, как в admin/page.tsx)
-const mockAdminOrders = [
-  {
-    id: "ORDER-1701234567890",
-    service: "Текстовые услуги",
-    status: "В работе",
-    date: "2025-06-10",
-    clientName: "Анна Смирнова",
-    clientEmail: "anna.s@example.com",
-    clientPhone: "+79001234567",
-    details: "Написание 5 SEO-статей для блога о технологиях. Срок: 3 дня. Бюджет: 15000 руб.",
-  },
-  {
-    id: "ORDER-1701234567891",
-    service: "Видеомонтаж",
-    status: "Ожидает обсуждения",
-    date: "2025-06-12",
-    clientName: "Петр Иванов",
-    clientEmail: "petr.i@example.com",
-    clientPhone: "+79009876543",
-    details: "Монтаж рекламного ролика для нового продукта. Длительность: 30 сек. Нужен футаж.",
-  },
-  {
-    id: "ORDER-1701234567892",
-    service: "Презентации",
-    status: "Завершено",
-    date: "2025-06-05",
-    clientName: "Мария Кузнецова",
-    clientEmail: "maria.k@example.com",
-    clientPhone: "+79005554433",
-    details: "Разработка корпоративной презентации для годового отчета. 20 слайдов.",
-  },
-  {
-    id: "ORDER-1701234567893",
-    service: "Сайты",
-    status: "Новый",
-    date: "2025-06-13",
-    clientName: "Дмитрий Васильев",
-    clientEmail: "dmitry.v@example.com",
-    clientPhone: "+79001112233",
-    details: "Создание лендинга для нового стартапа. Сбор заявок. Срок: 7 дней.",
-  },
-  {
-    id: "ORDER-1701234567894",
-    service: "Текстовые услуги",
-    status: "В работе",
-    date: "2025-06-14",
-    clientName: "Ольга Сидорова",
-    clientEmail: "olga.s@example.com",
-    clientPhone: "+79007778899",
-    details: "Рерайтинг статей для новостного портала.",
-  },
-  {
-    id: "ORDER-1701234567895",
-    service: "Боты",
-    status: "Новый",
-    date: "2025-06-15",
-    clientName: "Игорь Николаев",
-    clientEmail: "igor.n@example.com",
-    clientPhone: "+79002223344",
-    details: "Разработка Telegram-бота для поддержки клиентов.",
-  },
-]
+// Тип для сообщения
+interface Message {
+  id: number
+  sender: "client" | "manager"
+  text?: string
+  fileUrl?: string
+  fileName?: string
+  timestamp: string
+}
+
+// Тип для заказа
+interface Order {
+  id: string
+  service: string
+  status: string
+  date: string
+  clientName: string
+  clientEmail: string
+  clientPhone?: string
+  details: string
+  canDiscuss: boolean
+  canDownload: boolean
+  chatMessages: Message[]
+}
 
 interface SupportTicket {
   id: string
@@ -101,6 +62,7 @@ export default function AdminAnalyticsPage() {
   const router = useRouter()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([])
+  const [orders, setOrders] = useState<Order[]>([]) // Добавляем состояние для заказов
 
   useEffect(() => {
     const authStatus = localStorage.getItem("isAdminAuthenticated")
@@ -108,6 +70,8 @@ export default function AdminAnalyticsPage() {
       setIsAuthenticated(true)
       const storedTickets: SupportTicket[] = JSON.parse(localStorage.getItem("supportTickets") || "[]")
       setSupportTickets(storedTickets)
+      const storedOrders: Order[] = JSON.parse(localStorage.getItem("clientOrders") || "[]") // Загружаем заказы
+      setOrders(storedOrders)
     } else {
       router.push("/admin/login")
     }
@@ -116,25 +80,27 @@ export default function AdminAnalyticsPage() {
   // Аналитика по заказам
   const ordersByStatus = useMemo(() => {
     const statusCounts: { [key: string]: number } = {}
-    mockAdminOrders.forEach((order) => {
+    orders.forEach((order) => {
+      // Используем orders из состояния
       statusCounts[order.status] = (statusCounts[order.status] || 0) + 1
     })
     return Object.keys(statusCounts).map((status) => ({
       name: status,
       value: statusCounts[status],
     }))
-  }, [])
+  }, [orders])
 
   const ordersByService = useMemo(() => {
     const serviceCounts: { [key: string]: number } = {}
-    mockAdminOrders.forEach((order) => {
+    orders.forEach((order) => {
+      // Используем orders из состояния
       serviceCounts[order.service] = (serviceCounts[order.service] || 0) + 1
     })
     return Object.keys(serviceCounts).map((service) => ({
       name: service,
       value: serviceCounts[service],
     }))
-  }, [])
+  }, [orders])
 
   // Аналитика по обращениям в поддержку
   const ticketsByStatus = useMemo(() => {
@@ -151,7 +117,7 @@ export default function AdminAnalyticsPage() {
   const totalTickets = supportTickets.length
 
   if (!isAuthenticated) {
-    return null // Или лоадер
+    return null
   }
 
   return (
@@ -187,7 +153,7 @@ export default function AdminAnalyticsPage() {
                 <BarChart className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{mockAdminOrders.length}</div>
+                <div className="text-2xl font-bold">{orders.length}</div> {/* Используем orders.length */}
                 <p className="text-xs text-muted-foreground">Общее количество заказов в системе</p>
               </CardContent>
             </Card>
@@ -254,7 +220,7 @@ export default function AdminAnalyticsPage() {
               </CardContent>
             </Card>
 
-            {/* График: Обращения в поддержку по статусам */}
+            {/* График: Обращения в Поддержку по Статусам */}
             <Card className="lg:col-span-2">
               <CardHeader>
                 <CardTitle>Обращения в Поддержку по Статусам</CardTitle>
@@ -276,7 +242,6 @@ export default function AdminAnalyticsPage() {
         </div>
       </main>
 
-      {/* Footer (re-using from landing page for consistency) */}
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t bg-gray-950 text-gray-400">
         <p className="text-xs">&copy; 2025 БыстроДел. Все права защищены.</p>
         <nav className="sm:ml-auto flex gap-4 sm:gap-6">

@@ -1,5 +1,7 @@
 "use client"
 
+import { Label } from "@/components/ui/label"
+
 import { CardDescription } from "@/components/ui/card"
 
 import type React from "react"
@@ -11,13 +13,15 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, Send } from "lucide-react"
+import { ArrowLeft, Send, Paperclip } from "lucide-react" // Добавляем Paperclip
 import { useAuth } from "@/components/auth-provider"
 
 interface Message {
   id: number
   sender: "client" | "manager"
-  text: string
+  text?: string // Текст может быть опциональным, если это файл
+  fileUrl?: string // URL файла
+  fileName?: string // Имя файла
   timestamp: string
 }
 
@@ -45,6 +49,7 @@ export default function OrderChatPage() {
   const [order, setOrder] = useState<Order | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState("")
+  const fileInputRef = useRef<HTMLInputElement>(null) // Референс для инпута файла
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -62,12 +67,12 @@ export default function OrderChatPage() {
         setOrder(foundOrder)
         setMessages(foundOrder.chatMessages)
       } else {
-        router.push("/dashboard") // Перенаправляем, если заказ не найден или не принадлежит текущему клиенту
+        router.push("/dashboard")
       }
     }
 
     loadOrderData()
-    const interval = setInterval(loadOrderData, 3000) // Обновляем чат каждые 3 секунды
+    const interval = setInterval(loadOrderData, 3000)
     return () => clearInterval(interval)
   }, [isAuthenticated, router, orderId])
 
@@ -92,12 +97,9 @@ export default function OrderChatPage() {
       setMessages(updatedMessages)
       setNewMessage("")
 
-      // Обновляем localStorage
-      const storedOrders: Order[] = JSON.parse(localStorage.getItem("clientOrders") || "[]")
-      const updatedOrders = storedOrders.map((o) => (o.id === order.id ? { ...o, chatMessages: updatedMessages } : o))
-      localStorage.setItem("clientOrders", JSON.stringify(updatedOrders))
+      updateOrderInLocalStorage(order.id, updatedMessages)
 
-      // Simulate manager's response (optional, for demo purposes)
+      // Simulate manager's response
       setTimeout(() => {
         const managerResponse: Message = {
           id: updatedMessages.length + 1,
@@ -107,10 +109,55 @@ export default function OrderChatPage() {
         }
         const finalMessages = [...updatedMessages, managerResponse]
         setMessages(finalMessages)
-        const finalOrders = storedOrders.map((o) => (o.id === order.id ? { ...o, chatMessages: finalMessages } : o))
-        localStorage.setItem("clientOrders", JSON.stringify(finalOrders))
+        updateOrderInLocalStorage(order.id, finalMessages)
       }, 1500)
     }
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file && order) {
+      // В реальном приложении здесь будет логика загрузки файла на сервер
+      // и получение реального URL. Для демо используем заглушку.
+      const fileUrl = `/placeholder.svg?width=100&height=100` // Заглушка
+      const newFileMsg: Message = {
+        id: messages.length + 1,
+        sender: "client",
+        fileUrl: fileUrl,
+        fileName: file.name,
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      }
+      const updatedMessages = [...messages, newFileMsg]
+      setMessages(updatedMessages)
+
+      updateOrderInLocalStorage(order.id, updatedMessages)
+
+      // Очищаем инпут файла
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ""
+      }
+
+      // Simulate manager's response for file
+      setTimeout(() => {
+        const managerResponse: Message = {
+          id: updatedMessages.length + 1,
+          sender: "manager",
+          text: `Получили ваш файл: ${file.name}. Спасибо!`,
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        }
+        const finalMessages = [...updatedMessages, managerResponse]
+        setMessages(finalMessages)
+        updateOrderInLocalStorage(order.id, finalMessages)
+      }, 1500)
+    }
+  }
+
+  const updateOrderInLocalStorage = (currentOrderId: string, updatedMessages: Message[]) => {
+    const storedOrders: Order[] = JSON.parse(localStorage.getItem("clientOrders") || "[]")
+    const updatedOrders = storedOrders.map((o) =>
+      o.id === currentOrderId ? { ...o, chatMessages: updatedMessages } : o,
+    )
+    localStorage.setItem("clientOrders", JSON.stringify(updatedOrders))
   }
 
   if (!isAuthenticated || !order) {
@@ -151,7 +198,20 @@ export default function OrderChatPage() {
                         : "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                     }`}
                   >
-                    <p className="text-sm">{msg.text}</p>
+                    {msg.text && <p className="text-sm">{msg.text}</p>}
+                    {msg.fileUrl && msg.fileName && (
+                      <div className="flex items-center gap-2">
+                        <Paperclip className="h-4 w-4" />
+                        <a
+                          href={msg.fileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm underline hover:no-underline"
+                        >
+                          {msg.fileName}
+                        </a>
+                      </div>
+                    )}
                     <span className="text-xs opacity-75 mt-1 block text-right">{msg.timestamp}</span>
                   </div>
                 </div>
@@ -166,6 +226,19 @@ export default function OrderChatPage() {
                 onChange={(e) => setNewMessage(e.target.value)}
                 className="flex-1"
               />
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                className="hidden"
+                id="file-upload-client"
+              />
+              <Label htmlFor="file-upload-client" className="cursor-pointer">
+                <Button type="button" variant="outline" size="icon">
+                  <Paperclip className="h-4 w-4" />
+                  <span className="sr-only">Прикрепить файл</span>
+                </Button>
+              </Label>
               <Button type="submit" disabled={!newMessage.trim()}>
                 <Send className="h-4 w-4" />
                 <span className="sr-only">Отправить</span>

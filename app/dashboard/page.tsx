@@ -5,8 +5,18 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, MessageCircle, History, Download, User, LifeBuoy } from "lucide-react" // Добавляем LifeBuoy
+import { ArrowLeft, MessageCircle, History, Download, User, LifeBuoy } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
+
+// Тип для сообщения
+interface Message {
+  id: number
+  sender: "client" | "manager"
+  text?: string
+  fileUrl?: string
+  fileName?: string
+  timestamp: string
+}
 
 // Тип для заказа
 interface Order {
@@ -20,7 +30,7 @@ interface Order {
   details: string
   canDiscuss: boolean
   canDownload: boolean
-  chatMessages: { id: number; sender: "client" | "manager"; text: string; timestamp: string }[]
+  chatMessages: Message[] // Обновлено
 }
 
 export default function ClientDashboardPage() {
@@ -45,7 +55,7 @@ export default function ClientDashboardPage() {
     }
 
     loadClientOrders()
-    const interval = setInterval(loadClientOrders, 5000) // Обновляем заказы каждые 5 секунд
+    const interval = setInterval(loadClientOrders, 5000)
     return () => clearInterval(interval)
   }, [isAuthenticated, router])
 

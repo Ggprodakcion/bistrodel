@@ -7,9 +7,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, Eye, Trash2, LifeBuoy, BarChart } from "lucide-react"
+import { ArrowLeft, Eye, Trash2, LifeBuoy, BarChart, MessageCircle } from "lucide-react"
 
-// Тип для заказа (должен соответствовать тому, что сохраняется в localStorage)
+// Тип для сообщения
+interface Message {
+  id: number
+  sender: "client" | "manager"
+  text?: string
+  fileUrl?: string
+  fileName?: string
+  timestamp: string
+}
+
+// Тип для заказа
 interface Order {
   id: string
   service: string
@@ -21,12 +31,12 @@ interface Order {
   details: string
   canDiscuss: boolean
   canDownload: boolean
-  chatMessages: { id: number; sender: "client" | "manager"; text: string; timestamp: string }[]
+  chatMessages: Message[] // Обновлено
 }
 
 export default function AdminDashboardPage() {
   const router = useRouter()
-  const [orders, setOrders] = useState<Order[]>([]) // Инициализируем пустым массивом
+  const [orders, setOrders] = useState<Order[]>([])
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [newTicketsCount, setNewTicketsCount] = useState(0)
   const [filterStatus, setFilterStatus] = useState("Все")
@@ -36,9 +46,9 @@ export default function AdminDashboardPage() {
     const authStatus = localStorage.getItem("isAdminAuthenticated")
     if (authStatus === "true") {
       setIsAuthenticated(true)
-      loadOrders() // Загружаем заказы при монтировании
+      loadOrders()
       checkNewTickets()
-      const orderInterval = setInterval(loadOrders, 5000) // Обновляем заказы каждые 5 секунд
+      const orderInterval = setInterval(loadOrders, 5000)
       const ticketInterval = setInterval(checkNewTickets, 5000)
       return () => {
         clearInterval(orderInterval)
@@ -63,7 +73,7 @@ export default function AdminDashboardPage() {
   const handleStatusChange = (orderId: string, newStatus: string) => {
     setOrders((prevOrders) => {
       const updatedOrders = prevOrders.map((order) => (order.id === orderId ? { ...order, status: newStatus } : order))
-      localStorage.setItem("clientOrders", JSON.stringify(updatedOrders)) // Сохраняем в localStorage
+      localStorage.setItem("clientOrders", JSON.stringify(updatedOrders))
       return updatedOrders
     })
     console.log(`Статус заказа ${orderId} изменен на: ${newStatus}`)
@@ -73,7 +83,7 @@ export default function AdminDashboardPage() {
     if (window.confirm(`Вы уверены, что хотите удалить заказ №${orderId.split("-")[1]}?`)) {
       setOrders((prevOrders) => {
         const updatedOrders = prevOrders.filter((order) => order.id !== orderId)
-        localStorage.setItem("clientOrders", JSON.stringify(updatedOrders)) // Сохраняем в localStorage
+        localStorage.setItem("clientOrders", JSON.stringify(updatedOrders))
         return updatedOrders
       })
       alert(`Заказ №${orderId.split("-")[1]} удален.`)
@@ -84,21 +94,18 @@ export default function AdminDashboardPage() {
     if (window.confirm("Вы уверены, что хотите удалить ВСЕ завершенные и отмененные заказы?")) {
       const updatedOrders = orders.filter((order) => order.status !== "Завершено" && order.status !== "Отменен")
       setOrders(updatedOrders)
-      localStorage.setItem("clientOrders", JSON.stringify(updatedOrders)) // Сохраняем в localStorage
+      localStorage.setItem("clientOrders", JSON.stringify(updatedOrders))
       alert("Все завершенные и отмененные заказы удалены из списка.")
     }
   }
 
-  // Фильтрация и сортировка заказов
   const filteredAndSortedOrders = useMemo(() => {
     let currentOrders = [...orders]
 
-    // Фильтрация
     if (filterStatus !== "Все") {
       currentOrders = currentOrders.filter((order) => order.status === filterStatus)
     }
 
-    // Сортировка
     currentOrders.sort((a, b) => {
       switch (sortKey) {
         case "date-desc":
@@ -226,6 +233,11 @@ export default function AdminDashboardPage() {
                           <TableCell>{order.date}</TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
+                              <Link href={`/dashboard/${order.id}/chat`} passHref>
+                                <Button variant="outline" size="sm">
+                                  <MessageCircle className="h-4 w-4 mr-1" /> Чат
+                                </Button>
+                              </Link>
                               <Link href={`/admin/orders/${order.id}`} passHref>
                                 <Button variant="outline" size="sm">
                                   <Eye className="h-4 w-4 mr-1" /> Детали

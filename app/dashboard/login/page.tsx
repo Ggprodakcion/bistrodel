@@ -10,56 +10,29 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuth } from "@/components/auth-provider"
-import { Loader2 } from "lucide-react" // Импортируем Loader2 icon
+import { Loader2 } from "lucide-react"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(false) // Новое состояние загрузки
+  const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
   const { login } = useAuth()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
-    setIsLoading(true) // Начинаем загрузку
+    setIsLoading(true)
 
-    try {
-      // Симулируем API-вызов для аутентификации
-      // В реальном приложении это был бы fetch к вашему бэкенд API
-      const simulatedApiSuccess = await new Promise<boolean>((resolve, reject) => {
-        setTimeout(() => {
-          if (email === "client@example.com" && password === "password") {
-            resolve(true)
-          } else {
-            reject(new Error("Неверный email или пароль.")) // Симулируем ошибку API
-          }
-        }, 1000)
-      })
+    const { success, error: authError } = await login(email, password)
 
-      if (simulatedApiSuccess) {
-        // !!! ИСПРАВЛЕНО: Передаем email, password и тип пользователя
-        if (login(email, password, "client")) {
-          router.push("/dashboard")
-        } else {
-          // Это сработает, если пользователь не зарегистрирован в localStorage
-          // даже если симуляция API прошла успешно
-          setError("Пользователь не найден или неверный пароль (проверьте регистрацию).")
-        }
-      }
-    } catch (err) {
-      if (err instanceof TypeError && err.message.includes("NetworkError")) {
-        setError("Ошибка сети. Пожалуйста, проверьте ваше интернет-соединение или попробуйте позже.")
-      } else if (err instanceof Error) {
-        setError(err.message)
-      } else {
-        setError("Произошла неизвестная ошибка.")
-      }
-      console.error("Login error:", err)
-    } finally {
-      setIsLoading(false) // Завершаем загрузку
+    if (success) {
+      router.push("/dashboard")
+    } else {
+      setError(authError || "Произошла ошибка при входе. Пожалуйста, попробуйте еще раз.")
     }
+    setIsLoading(false)
   }
 
   return (

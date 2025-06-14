@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ArrowLeft } from "lucide-react"
-import { useAuth } from "@/components/auth-provider" // Импортируем useAuth
+import { useAuth } from "@/components/auth-provider"
 
 export default function ClientRegisterPage() {
   const [email, setEmail] = useState("")
@@ -22,11 +22,11 @@ export default function ClientRegisterPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      router.push("/dashboard") // Если уже аутентифицирован, перенаправляем в кабинет
+      router.push("/dashboard")
     }
   }, [isAuthenticated, router])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setSuccess("")
@@ -36,15 +36,16 @@ export default function ClientRegisterPage() {
       return
     }
 
-    if (register(email, password)) {
+    const { success: registrationSuccess, error: registrationError } = await register(email, password)
+
+    if (registrationSuccess) {
       setSuccess("Регистрация успешна! Теперь вы можете войти.")
       setEmail("")
       setPassword("")
       setConfirmPassword("")
-      // Можно автоматически перенаправить на страницу входа
       setTimeout(() => router.push("/dashboard/login"), 2000)
     } else {
-      setError("Пользователь с таким email уже существует.")
+      setError(registrationError || "Произошла ошибка при регистрации.")
     }
   }
 

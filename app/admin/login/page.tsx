@@ -1,15 +1,17 @@
 "use client"
 
 import type React from "react"
+
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/hooks/useAuth"
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useAuth } from "@/components/auth-provider"
 import { Loader2 } from "lucide-react"
 
-const AdminLoginPage: React.FC = () => {
+export default function AdminLoginPage() {
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -69,7 +71,7 @@ const AdminLoginPage: React.FC = () => {
         <CardContent>
           <form onSubmit={handleLogin} className="grid gap-4">
             <div className="grid gap-2">
-              <label htmlFor="password">Пароль</label>
+              <Label htmlFor="password">Пароль</Label>
               <Input
                 id="password"
                 type="password"
@@ -96,5 +98,3 @@ const AdminLoginPage: React.FC = () => {
     </div>
   )
 }
-
-export default AdminLoginPage

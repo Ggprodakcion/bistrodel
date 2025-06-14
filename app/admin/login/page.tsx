@@ -32,7 +32,11 @@ export default function AdminLoginPage() {
           if (password === adminPassword) {
             resolve({ success: true })
           } else {
-            reject(new Error("Неверный пароль администратора."))
+            reject(
+              new Error(
+                "Неверный пароль администратора. Пожалуйста, убедитесь, что вы используете правильный пароль, установленный в переменной окружения NEXT_PUBLIC_ADMIN_PASSWORD.",
+              ),
+            )
           }
         }, 1000)
       })

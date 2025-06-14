@@ -1,7 +1,9 @@
 "use client"
 
+import { CardDescription } from "@/components/ui/card"
+
 import type React from "react"
-import type { HTMLDivElement } from "react" // Import HTMLDivElement
+import type { HTMLDivElement } from "react"
 
 import { useState, useEffect, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
@@ -10,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowLeft, Send } from "lucide-react"
-import { useAuth } from "@/components/auth-provider" // Импортируем useAuth
+import { useAuth } from "@/components/auth-provider"
 
 interface Message {
   id: number
@@ -19,31 +21,59 @@ interface Message {
   timestamp: string
 }
 
+// Тип для заказа
+interface Order {
+  id: string
+  service: string
+  status: string
+  date: string
+  clientName: string
+  clientEmail: string
+  clientPhone?: string
+  details: string
+  canDiscuss: boolean
+  canDownload: boolean
+  chatMessages: Message[]
+}
+
 export default function OrderChatPage() {
   const params = useParams()
   const router = useRouter()
   const orderId = params.orderId as string
-  const { isAuthenticated, logout } = useAuth() // Используем useAuth
+  const { isAuthenticated, logout } = useAuth()
 
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 1,
-      sender: "manager",
-      text: `Здравствуйте! Спасибо за ваш заказ №${orderId.split("-")[1]}. Чем могу помочь?`,
-      timestamp: "10:00",
-    },
-    { id: 2, sender: "client", text: "Здравствуйте! Хотел бы уточнить детали по моему проекту.", timestamp: "10:05" },
-  ])
+  const [order, setOrder] = useState<Order | null>(null)
+  const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState("")
-  const messagesEndRef = useRef<HTMLDivElement>(null) // Declare HTMLDivElement
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!isAuthenticated) {
-      router.push("/dashboard/login") // Перенаправляем на страницу входа, если не аутентифицирован
+      router.push("/dashboard/login")
       return
     }
+
+    const loadOrderData = () => {
+      const storedOrders: Order[] = JSON.parse(localStorage.getItem("clientOrders") || "[]")
+      const foundOrder = storedOrders.find((o) => o.id === orderId)
+      const currentClientEmail = localStorage.getItem("currentClientEmail")
+
+      if (foundOrder && foundOrder.clientEmail === currentClientEmail) {
+        setOrder(foundOrder)
+        setMessages(foundOrder.chatMessages)
+      } else {
+        router.push("/dashboard") // Перенаправляем, если заказ не найден или не принадлежит текущему клиенту
+      }
+    }
+
+    loadOrderData()
+    const interval = setInterval(loadOrderData, 3000) // Обновляем чат каждые 3 секунды
+    return () => clearInterval(interval)
+  }, [isAuthenticated, router, orderId])
+
+  useEffect(() => {
     scrollToBottom()
-  }, [messages, isAuthenticated, router]) // Добавляем isAuthenticated и router в зависимости
+  }, [messages])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -51,31 +81,40 @@ export default function OrderChatPage() {
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault()
-    if (newMessage.trim()) {
+    if (newMessage.trim() && order) {
       const newMsg: Message = {
         id: messages.length + 1,
         sender: "client",
         text: newMessage.trim(),
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       }
-      setMessages((prevMessages) => [...prevMessages, newMsg])
+      const updatedMessages = [...messages, newMsg]
+      setMessages(updatedMessages)
       setNewMessage("")
 
-      // Simulate manager's response
+      // Обновляем localStorage
+      const storedOrders: Order[] = JSON.parse(localStorage.getItem("clientOrders") || "[]")
+      const updatedOrders = storedOrders.map((o) => (o.id === order.id ? { ...o, chatMessages: updatedMessages } : o))
+      localStorage.setItem("clientOrders", JSON.stringify(updatedOrders))
+
+      // Simulate manager's response (optional, for demo purposes)
       setTimeout(() => {
         const managerResponse: Message = {
-          id: messages.length + 2,
+          id: updatedMessages.length + 1,
           sender: "manager",
-          text: "Понял вас. Уточните, пожалуйста, какие именно детали вас интересуют?",
+          text: "Спасибо за ваше сообщение. Мы рассмотрим его и ответим в ближайшее время.",
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         }
-        setMessages((prevMessages) => [...prevMessages, managerResponse])
+        const finalMessages = [...updatedMessages, managerResponse]
+        setMessages(finalMessages)
+        const finalOrders = storedOrders.map((o) => (o.id === order.id ? { ...o, chatMessages: finalMessages } : o))
+        localStorage.setItem("clientOrders", JSON.stringify(finalOrders))
       }, 1500)
     }
   }
 
-  if (!isAuthenticated) {
-    return null // Или лоадер, пока идет перенаправление
+  if (!isAuthenticated || !order) {
+    return null
   }
 
   return (
@@ -89,13 +128,8 @@ export default function OrderChatPage() {
           <ArrowLeft className="h-5 w-5" />
           <span>В личный кабинет</span>
         </Link>
-        <h1 className="text-2xl font-bold">Обсуждение Заказа №{orderId.split("-")[1]}</h1>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={logout} // Добавляем кнопку выхода
-          className="text-white border-white hover:bg-gray-700"
-        >
+        <h1 className="text-2xl font-bold">Обсуждение Заказа №{order.id.split("-")[1]}</h1>
+        <Button variant="outline" size="sm" onClick={logout} className="text-white border-white hover:bg-gray-700">
           Выйти
         </Button>
       </header>
@@ -103,7 +137,8 @@ export default function OrderChatPage() {
       <main className="flex-1 container mx-auto py-8 px-4 md:px-6 flex flex-col">
         <Card className="flex-1 flex flex-col">
           <CardHeader>
-            <CardTitle>Чат по заказу</CardTitle>
+            <CardTitle>Чат по заказу: {order.service}</CardTitle>
+            <CardDescription>Статус: {order.status}</CardDescription>
           </CardHeader>
           <CardContent className="flex-1 flex flex-col justify-end">
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-800 rounded-md mb-4">
@@ -140,7 +175,6 @@ export default function OrderChatPage() {
         </Card>
       </main>
 
-      {/* Footer (re-using from landing page for consistency) */}
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t bg-gray-950 text-gray-400">
         <p className="text-xs">&copy; 2025 БыстроДел. Все права защищены.</p>
         <nav className="sm:ml-auto flex gap-4 sm:gap-6">

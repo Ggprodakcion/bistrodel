@@ -1,60 +1,56 @@
-"use client" // Добавляем use client
+"use client"
 
-import { useEffect } from "react" // Импортируем useEffect
+import { useEffect, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation" // Импортируем useRouter
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, MessageCircle, History, Download, User } from "lucide-react"
-import { useAuth } from "@/components/auth-provider" // Импортируем useAuth
+import { ArrowLeft, MessageCircle, History, Download, User, LifeBuoy } from "lucide-react" // Добавляем LifeBuoy
+import { useAuth } from "@/components/auth-provider"
 
-// This is a placeholder for client's orders. In a real app, this would come from a database.
-const mockOrders = [
-  {
-    id: "ORDER-1701234567890",
-    service: "Текстовые услуги",
-    status: "В работе",
-    date: "2025-06-10",
-    details: "Написание 5 SEO-статей для блога о технологиях.",
-    canDiscuss: true,
-    canDownload: false,
-  },
-  {
-    id: "ORDER-1701234567891",
-    service: "Видеомонтаж",
-    status: "Ожидает обсуждения",
-    date: "2025-06-12",
-    clientName: "Петр Иванов",
-    clientEmail: "petr.i@example.com",
-    clientPhone: "+79009876543",
-    details: "Монтаж рекламного ролика для нового продукта. Длительность: 30 сек. Нужен футаж.",
-  },
-  {
-    id: "ORDER-1701234567892",
-    service: "Презентации",
-    status: "Завершено",
-    date: "2025-06-05",
-    clientName: "Мария Кузнецова",
-    clientEmail: "maria.k@example.com",
-    clientPhone: "+79005554433",
-    details: "Разработка корпоративной презентации.",
-    canDiscuss: false,
-    canDownload: true,
-  },
-]
+// Тип для заказа
+interface Order {
+  id: string
+  service: string
+  status: string
+  date: string
+  clientName: string
+  clientEmail: string
+  clientPhone?: string
+  details: string
+  canDiscuss: boolean
+  canDownload: boolean
+  chatMessages: { id: number; sender: "client" | "manager"; text: string; timestamp: string }[]
+}
 
 export default function ClientDashboardPage() {
   const { isAuthenticated, logout } = useAuth()
   const router = useRouter()
+  const [clientOrders, setClientOrders] = useState<Order[]>([])
+  const [currentClientEmail, setCurrentClientEmail] = useState<string | null>(null)
 
   useEffect(() => {
     if (!isAuthenticated) {
-      router.push("/dashboard/login") // Перенаправляем на страницу входа, если не аутентифицирован
+      router.push("/dashboard/login")
+      return
     }
+
+    const email = localStorage.getItem("currentClientEmail")
+    setCurrentClientEmail(email)
+
+    const loadClientOrders = () => {
+      const allOrders: Order[] = JSON.parse(localStorage.getItem("clientOrders") || "[]")
+      const filteredOrders = allOrders.filter((order) => order.clientEmail === email)
+      setClientOrders(filteredOrders)
+    }
+
+    loadClientOrders()
+    const interval = setInterval(loadClientOrders, 5000) // Обновляем заказы каждые 5 секунд
+    return () => clearInterval(interval)
   }, [isAuthenticated, router])
 
   if (!isAuthenticated) {
-    return null // Или лоадер, пока идет перенаправление
+    return null
   }
 
   return (
@@ -65,12 +61,7 @@ export default function ClientDashboardPage() {
           <span>На главную</span>
         </Link>
         <h1 className="text-2xl font-bold">Личный Кабинет Клиента</h1>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={logout} // Добавляем кнопку выхода
-          className="text-white border-white hover:bg-gray-700"
-        >
+        <Button variant="outline" size="sm" onClick={logout} className="text-white border-white hover:bg-gray-700">
           Выйти
         </Button>
       </header>
@@ -79,11 +70,11 @@ export default function ClientDashboardPage() {
         <div className="space-y-8">
           <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white">Ваши Заказы</h2>
 
-          {mockOrders.length === 0 ? (
+          {clientOrders.length === 0 ? (
             <p className="text-center text-gray-600 dark:text-gray-400">У вас пока нет активных заказов.</p>
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {mockOrders.map((order) => (
+              {clientOrders.map((order) => (
                 <Card key={order.id} className="flex flex-col">
                   <CardHeader>
                     <CardTitle className="text-xl">Заказ №{order.id.split("-")[1]}</CardTitle>
@@ -135,9 +126,9 @@ export default function ClientDashboardPage() {
                 <History className="h-4 w-4 mr-2" /> История заказов
               </Button>
             </Link>
-            <Link href="/contact" passHref>
+            <Link href="/dashboard/support" passHref>
               <Button variant="outline">
-                <MessageCircle className="h-4 w-4 mr-2" /> Поддержка (Чат)
+                <LifeBuoy className="h-4 w-4 mr-2" /> Поддержка (Чат)
               </Button>
             </Link>
             <Link href="/contact" passHref>
@@ -152,7 +143,6 @@ export default function ClientDashboardPage() {
         </div>
       </main>
 
-      {/* Footer (re-using from landing page for consistency) */}
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t bg-gray-950 text-gray-400">
         <p className="text-xs">&copy; 2025 БыстроДел. Все права защищены.</p>
         <nav className="sm:ml-auto flex gap-4 sm:gap-6">

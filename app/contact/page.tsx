@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -10,10 +10,12 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Mail, Phone } from "lucide-react"
-import { PublicHeader } from "@/components/public-header" // Импортируем новый хедер
-import { PublicFooter } from "@/components/public-footer" // Импортируем новый футер
+import { PublicHeader } from "@/components/public-header"
+import { PublicFooter } from "@/components/public-footer"
+import { useAuth } from "@/components/auth-provider" // Импортируем useAuth
 
 export default function ContactPage() {
+  const { isAuthenticated } = useAuth()
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [subject, setSubject] = useState("")
@@ -21,12 +23,24 @@ export default function ContactPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formSubmitted, setFormSubmitted] = useState(false)
 
+  useEffect(() => {
+    if (isAuthenticated) {
+      const currentClientEmail = localStorage.getItem("currentClientEmail")
+      if (currentClientEmail) {
+        setEmail(currentClientEmail)
+      }
+      const storedProfile = localStorage.getItem("clientProfile")
+      if (storedProfile) {
+        const parsedProfile = JSON.parse(storedProfile)
+        setName(parsedProfile.name || "")
+      }
+    }
+  }, [isAuthenticated])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
 
-    // --- ВНИМАНИЕ: ЭТО ПРОСТАЯ СИМУЛЯЦИЯ ОТПРАВКИ ОБРАЩЕНИЯ В ПОДДЕРЖКУ ---
-    // В РЕАЛЬНОМ ПРИЛОЖЕНИИ ИСПОЛЬЗУЙТЕ СЕРВЕРНЫЕ API ДЛЯ СОХРАНЕНИЯ ДАННЫХ В БАЗЕ ДАННЫХ
     await new Promise((resolve) => setTimeout(resolve, 1500))
 
     const newTicket = {
@@ -37,8 +51,7 @@ export default function ContactPage() {
       message,
       status: "Новое",
       date: new Date().toLocaleDateString("ru-RU"),
-      isUnread: true, // Добавляем флаг непрочитанного сообщения
-      // Для симуляции чата, инициализируем пустой массив сообщений
+      isUnread: true,
       chatMessages: [
         {
           id: 1,
@@ -87,7 +100,7 @@ export default function ContactPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-100 dark:bg-gray-900">
-      <PublicHeader /> {/* Используем новый хедер */}
+      <PublicHeader />
       <main className="flex-1 container mx-auto py-12 px-4 md:px-6">
         <div className="grid gap-12 lg:grid-cols-2">
           {/* FAQ Section */}
@@ -146,6 +159,7 @@ export default function ContactPage() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required
+                        disabled={isAuthenticated} // Если аутентифицирован, email не редактируется
                       />
                     </div>
                     <div>
@@ -198,7 +212,7 @@ export default function ContactPage() {
           </div>
         </div>
       </main>
-      <PublicFooter /> {/* Используем новый футер */}
+      <PublicFooter />
     </div>
   )
 }

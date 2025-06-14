@@ -7,55 +7,26 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, MessageCircle, Eye, Trash2, LifeBuoy, BarChart } from "lucide-react"
+import { ArrowLeft, Eye, Trash2, LifeBuoy, BarChart } from "lucide-react"
 
-// Моковые данные для заказов и клиентов
-const initialMockAdminOrders = [
-  {
-    id: "ORDER-1701234567890",
-    service: "Текстовые услуги",
-    status: "В работе",
-    date: "2025-06-10",
-    clientName: "Анна Смирнова",
-    clientEmail: "anna.s@example.com",
-    clientPhone: "+79001234567",
-    details: "Написание 5 SEO-статей для блога о технологиях. Срок: 3 дня. Бюджет: 15000 руб.",
-  },
-  {
-    id: "ORDER-1701234567891",
-    service: "Видеомонтаж",
-    status: "Ожидает обсуждения",
-    date: "2025-06-12",
-    clientName: "Петр Иванов",
-    clientEmail: "petr.i@example.com",
-    clientPhone: "+79009876543",
-    details: "Монтаж рекламного ролика для нового продукта. Длительность: 30 сек. Нужен футаж.",
-  },
-  {
-    id: "ORDER-1701234567892",
-    service: "Презентации",
-    status: "Завершено", // Этот заказ будет удален
-    date: "2025-06-05",
-    clientName: "Мария Кузнецова",
-    clientEmail: "maria.k@example.com",
-    clientPhone: "+79005554433",
-    details: "Разработка корпоративной презентации для годового отчета. 20 слайдов.",
-  },
-  {
-    id: "ORDER-1701234567893",
-    service: "Сайты",
-    status: "Новый",
-    date: "2025-06-13",
-    clientName: "Дмитрий Васильев",
-    clientEmail: "dmitry.v@example.com",
-    clientPhone: "+79001112233",
-    details: "Создание лендинга для нового стартапа. Сбор заявок. Срок: 7 дней.",
-  },
-]
+// Тип для заказа (должен соответствовать тому, что сохраняется в localStorage)
+interface Order {
+  id: string
+  service: string
+  status: string
+  date: string
+  clientName: string
+  clientEmail: string
+  clientPhone?: string
+  details: string
+  canDiscuss: boolean
+  canDownload: boolean
+  chatMessages: { id: number; sender: "client" | "manager"; text: string; timestamp: string }[]
+}
 
 export default function AdminDashboardPage() {
   const router = useRouter()
-  const [orders, setOrders] = useState(initialMockAdminOrders)
+  const [orders, setOrders] = useState<Order[]>([]) // Инициализируем пустым массивом
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [newTicketsCount, setNewTicketsCount] = useState(0)
   const [filterStatus, setFilterStatus] = useState("Все")
@@ -65,13 +36,23 @@ export default function AdminDashboardPage() {
     const authStatus = localStorage.getItem("isAdminAuthenticated")
     if (authStatus === "true") {
       setIsAuthenticated(true)
+      loadOrders() // Загружаем заказы при монтировании
       checkNewTickets()
-      const interval = setInterval(checkNewTickets, 5000)
-      return () => clearInterval(interval)
+      const orderInterval = setInterval(loadOrders, 5000) // Обновляем заказы каждые 5 секунд
+      const ticketInterval = setInterval(checkNewTickets, 5000)
+      return () => {
+        clearInterval(orderInterval)
+        clearInterval(ticketInterval)
+      }
     } else {
       router.push("/admin/login")
     }
   }, [router])
+
+  const loadOrders = () => {
+    const storedOrders: Order[] = JSON.parse(localStorage.getItem("clientOrders") || "[]")
+    setOrders(storedOrders)
+  }
 
   const checkNewTickets = () => {
     const storedTickets = JSON.parse(localStorage.getItem("supportTickets") || "[]")
@@ -80,16 +61,32 @@ export default function AdminDashboardPage() {
   }
 
   const handleStatusChange = (orderId: string, newStatus: string) => {
-    setOrders((prevOrders) =>
-      prevOrders.map((order) => (order.id === orderId ? { ...order, status: newStatus } : order)),
-    )
+    setOrders((prevOrders) => {
+      const updatedOrders = prevOrders.map((order) => (order.id === orderId ? { ...order, status: newStatus } : order))
+      localStorage.setItem("clientOrders", JSON.stringify(updatedOrders)) // Сохраняем в localStorage
+      return updatedOrders
+    })
     console.log(`Статус заказа ${orderId} изменен на: ${newStatus}`)
   }
 
+  const handleDeleteOrder = (orderId: string) => {
+    if (window.confirm(`Вы уверены, что хотите удалить заказ №${orderId.split("-")[1]}?`)) {
+      setOrders((prevOrders) => {
+        const updatedOrders = prevOrders.filter((order) => order.id !== orderId)
+        localStorage.setItem("clientOrders", JSON.stringify(updatedOrders)) // Сохраняем в localStorage
+        return updatedOrders
+      })
+      alert(`Заказ №${orderId.split("-")[1]} удален.`)
+    }
+  }
+
   const handleDeleteCompleted = () => {
-    const updatedOrders = orders.filter((order) => order.status !== "Завершено")
-    setOrders(updatedOrders)
-    alert("Все завершенные заказы удалены из списка.")
+    if (window.confirm("Вы уверены, что хотите удалить ВСЕ завершенные и отмененные заказы?")) {
+      const updatedOrders = orders.filter((order) => order.status !== "Завершено" && order.status !== "Отменен")
+      setOrders(updatedOrders)
+      localStorage.setItem("clientOrders", JSON.stringify(updatedOrders)) // Сохраняем в localStorage
+      alert("Все завершенные и отмененные заказы удалены из списка.")
+    }
   }
 
   // Фильтрация и сортировка заказов
@@ -178,7 +175,7 @@ export default function AdminDashboardPage() {
               </Select>
             </div>
             <Button variant="destructive" onClick={handleDeleteCompleted}>
-              <Trash2 className="h-4 w-4 mr-2" /> Удалить завершенные заказы
+              <Trash2 className="h-4 w-4 mr-2" /> Удалить завершенные/отмененные
             </Button>
           </div>
 
@@ -192,8 +189,6 @@ export default function AdminDashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
-                  {" "}
-                  {/* Добавлено для горизонтальной прокрутки */}
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -231,16 +226,15 @@ export default function AdminDashboardPage() {
                           <TableCell>{order.date}</TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
-                              <Link href={`/dashboard/${order.id}/chat`} passHref>
-                                <Button variant="outline" size="sm">
-                                  <MessageCircle className="h-4 w-4 mr-1" /> Чат
-                                </Button>
-                              </Link>
                               <Link href={`/admin/orders/${order.id}`} passHref>
                                 <Button variant="outline" size="sm">
                                   <Eye className="h-4 w-4 mr-1" /> Детали
                                 </Button>
                               </Link>
+                              <Button variant="destructive" size="sm" onClick={() => handleDeleteOrder(order.id)}>
+                                <Trash2 className="h-4 w-4" />
+                                <span className="sr-only">Удалить</span>
+                              </Button>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -271,12 +265,10 @@ export default function AdminDashboardPage() {
                 <BarChart className="h-4 w-4 mr-2" /> Аналитика
               </Button>
             </Link>
-            {/* Дополнительные разделы админ-панели можно добавить здесь */}
           </div>
         </div>
       </main>
 
-      {/* Footer (re-using from landing page for consistency) */}
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t bg-gray-950 text-gray-400">
         <p className="text-xs">&copy; 2025 БыстроДел. Все права защищены.</p>
         <nav className="sm:ml-auto flex gap-4 sm:gap-6">

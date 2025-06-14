@@ -1,60 +1,73 @@
 "use client"
 
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, MessageCircle } from "lucide-react"
+import { ArrowLeft, MessageCircle, CheckCircle } from "lucide-react"
+import { useEffect, useState } from "react"
 
-// Моковые данные для заказов (должны быть такими же, как в admin/page.tsx)
-const mockAdminOrders = [
-  {
-    id: "ORDER-1701234567890",
-    service: "Текстовые услуги",
-    status: "В работе",
-    date: "2025-06-10",
-    clientName: "Анна Смирнова",
-    clientEmail: "anna.s@example.com",
-    clientPhone: "+79001234567",
-    details: "Написание 5 SEO-статей для блога о технологиях. Срок: 3 дня. Бюджет: 15000 руб.",
-  },
-  {
-    id: "ORDER-1701234567891",
-    service: "Видеомонтаж",
-    status: "Ожидает обсуждения",
-    date: "2025-06-12",
-    clientName: "Петр Иванов",
-    clientEmail: "petr.i@example.com",
-    clientPhone: "+79009876543",
-    details: "Монтаж рекламного ролика для нового продукта. Длительность: 30 сек. Нужен футаж.",
-  },
-  {
-    id: "ORDER-1701234567892",
-    service: "Презентации",
-    status: "Завершено",
-    date: "2025-06-05",
-    clientName: "Мария Кузнецова",
-    clientEmail: "maria.k@example.com",
-    clientPhone: "+79005554433",
-    details: "Разработка корпоративной презентации для годового отчета. 20 слайдов.",
-  },
-  {
-    id: "ORDER-1701234567893",
-    service: "Сайты",
-    status: "Новый",
-    date: "2025-06-13",
-    clientName: "Дмитрий Васильев",
-    clientEmail: "dmitry.v@example.com",
-    clientPhone: "+79001112233",
-    details: "Создание лендинга для нового стартапа. Сбор заявок. Срок: 7 дней.",
-  },
-]
+// Тип для заказа
+interface Order {
+  id: string
+  service: string
+  status: string
+  date: string
+  clientName: string
+  clientEmail: string
+  clientPhone?: string
+  details: string
+  canDiscuss: boolean
+  canDownload: boolean
+  chatMessages: { id: number; sender: "client" | "manager"; text: string; timestamp: string }[]
+}
 
 export default function AdminOrderDetailPage() {
   const params = useParams()
+  const router = useRouter()
   const orderId = params.orderId as string
 
-  const order = mockAdminOrders.find((o) => o.id === orderId)
+  const [order, setOrder] = useState<Order | null>(null)
+
+  useEffect(() => {
+    const storedOrders: Order[] = JSON.parse(localStorage.getItem("clientOrders") || "[]")
+    const foundOrder = storedOrders.find((o) => o.id === orderId)
+    if (foundOrder) {
+      setOrder(foundOrder)
+    } else {
+      router.push("/admin") // Перенаправляем, если заказ не найден
+    }
+  }, [orderId, router])
+
+  const handleCompleteOrder = () => {
+    if (!order) return
+
+    if (window.confirm(`Вы уверены, что хотите завершить заказ №${order.id.split("-")[1]}?`)) {
+      const updatedOrders: Order[] = JSON.parse(localStorage.getItem("clientOrders") || "[]")
+      const orderIndex = updatedOrders.findIndex((o) => o.id === order.id)
+
+      if (orderIndex !== -1) {
+        const updatedOrder = {
+          ...updatedOrders[orderIndex],
+          status: "Завершено",
+          canDownload: true, // Разрешаем скачивание для клиента
+          chatMessages: [
+            ...updatedOrders[orderIndex].chatMessages,
+            {
+              id: updatedOrders[orderIndex].chatMessages.length + 1,
+              sender: "manager",
+              text: "Ваш заказ завершен! Вы можете скачать готовые материалы в личном кабинете.",
+              timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+            },
+          ],
+        }
+        updatedOrders[orderIndex] = updatedOrder
+        localStorage.setItem("clientOrders", JSON.stringify(updatedOrders))
+        setOrder(updatedOrder) // Обновляем состояние компонента
+        alert(`Заказ №${order.id.split("-")[1]} успешно завершен!`)
+      }
+    }
+  }
 
   if (!order) {
     return (
@@ -118,7 +131,6 @@ export default function AdminOrderDetailPage() {
               <p>
                 <span className="font-medium">Телефон:</span> {order.clientPhone || "Не указан"}
               </p>
-              {/* Здесь можно добавить больше полей, если они есть в вашей базе данных */}
             </div>
             <div className="md:col-span-2 flex justify-center gap-4 mt-4">
               <Link href={`/dashboard/${order.id}/chat`} passHref>
@@ -126,6 +138,11 @@ export default function AdminOrderDetailPage() {
                   <MessageCircle className="h-4 w-4 mr-2" /> Перейти в чат
                 </Button>
               </Link>
+              {order.status !== "Завершено" && (
+                <Button onClick={handleCompleteOrder} className="bg-green-600 hover:bg-green-700 text-white">
+                  <CheckCircle className="h-4 w-4 mr-2" /> Завершить заказ
+                </Button>
+              )}
               <Link href="/admin" passHref>
                 <Button variant="outline">
                   <ArrowLeft className="h-4 w-4 mr-2" /> Вернуться к заказам
@@ -136,7 +153,6 @@ export default function AdminOrderDetailPage() {
         </Card>
       </main>
 
-      {/* Footer (re-using from landing page for consistency) */}
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t bg-gray-950 text-gray-400">
         <p className="text-xs">&copy; 2025 БыстроДел. Все права защищены.</p>
         <nav className="sm:ml-auto flex gap-4 sm:gap-6">

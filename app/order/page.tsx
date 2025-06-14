@@ -12,13 +12,15 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowLeft } from "lucide-react"
-import { PublicHeader } from "@/components/public-header" // Импортируем новый хедер
-import { PublicFooter } from "@/components/public-footer" // Импортируем новый футер
+import { PublicHeader } from "@/components/public-header"
+import { PublicFooter } from "@/components/public-footer"
+import { useAuth } from "@/components/auth-provider" // Импортируем useAuth
 
 export default function OrderPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const initialService = searchParams.get("service") || ""
+  const { isAuthenticated } = useAuth() // Получаем статус аутентификации
 
   const [serviceType, setServiceType] = useState(initialService)
   const [name, setName] = useState("")
@@ -36,7 +38,20 @@ export default function OrderPage() {
     } else {
       setServiceType("Общая услуга")
     }
-  }, [initialService])
+
+    // Если пользователь аутентифицирован, подставляем его email
+    if (isAuthenticated) {
+      const currentClientEmail = localStorage.getItem("currentClientEmail")
+      if (currentClientEmail) {
+        setEmail(currentClientEmail)
+      }
+      const storedProfile = localStorage.getItem("clientProfile")
+      if (storedProfile) {
+        const parsedProfile = JSON.parse(storedProfile)
+        setName(parsedProfile.name || "")
+      }
+    }
+  }, [initialService, isAuthenticated])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -47,6 +62,32 @@ export default function OrderPage() {
     const today = new Date().toISOString().slice(0, 10).replace(/-/g, "")
     const randomString = Math.random().toString(36).substring(2, 8).toUpperCase()
     const generatedOrderId = `ORDER-${today}-${randomString}`
+
+    const newOrder = {
+      id: generatedOrderId,
+      service: serviceType,
+      status: "Новый", // Начальный статус
+      date: new Date().toISOString().slice(0, 10),
+      clientName: name,
+      clientEmail: email,
+      clientPhone: "", // Пока не запрашиваем, можно добавить в форму
+      details: details,
+      canDiscuss: true,
+      canDownload: false,
+      chatMessages: [
+        {
+          id: 1,
+          sender: "manager",
+          text: `Здравствуйте, ${name}! Ваш заказ №${generatedOrderId.split("-")[1]} по услуге "${serviceType}" принят. Мы скоро свяжемся с вами для обсуждения деталей.`,
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        },
+      ],
+    }
+
+    // Сохраняем новый заказ в localStorage
+    const existingOrders = JSON.parse(localStorage.getItem("clientOrders") || "[]")
+    localStorage.setItem("clientOrders", JSON.stringify([...existingOrders, newOrder]))
+
     setOrderId(generatedOrderId)
     setOrderPlaced(true)
     setIsSubmitting(false)
@@ -86,7 +127,7 @@ export default function OrderPage() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <PublicHeader /> {/* Используем новый хедер */}
+      <PublicHeader />
       <main className="flex-1 flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-900 p-4">
         <Card className="w-full max-w-md rounded-xl shadow-xl">
           <CardHeader>
@@ -130,6 +171,7 @@ export default function OrderPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  disabled={isAuthenticated} // Если аутентифицирован, email не редактируется
                 />
               </div>
               <div>
@@ -158,7 +200,7 @@ export default function OrderPage() {
           Вернуться к услугам
         </Link>
       </main>
-      <PublicFooter /> {/* Используем новый футер */}
+      <PublicFooter />
     </div>
   )
 }

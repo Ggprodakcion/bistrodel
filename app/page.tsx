@@ -12,7 +12,8 @@ import {
   ClipboardList,
   MessageSquare,
   Award,
-} from "lucide-react" // Добавляем новые иконки
+  CreditCard,
+} from "lucide-react"
 import { Testimonials } from "@/components/testimonials"
 import { PublicHeader } from "@/components/public-header"
 import { PublicFooter } from "@/components/public-footer"
@@ -78,7 +79,7 @@ export default function LandingPage() {
               </p>
             </div>
           </div>
-          <div className="mx-auto grid max-w-5xl items-start gap-8 sm:grid-cols-2 lg:grid-cols-4 py-12">
+          <div className="mx-auto grid max-w-5xl items-start gap-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 py-12">
             <Card className="flex flex-col items-center text-center p-6">
               <CardHeader>
                 <ClipboardList className="h-10 w-10 text-primary mb-4" />
@@ -103,8 +104,19 @@ export default function LandingPage() {
             </Card>
             <Card className="flex flex-col items-center text-center p-6">
               <CardHeader>
+                <CreditCard className="h-10 w-10 text-primary mb-4" />
+                <CardTitle className="text-lg font-semibold">3. Оплата</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  После согласования деталей и стоимости, вы производите оплату удобным способом.
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="flex flex-col items-center text-center p-6">
+              <CardHeader>
                 <Code className="h-10 w-10 text-primary mb-4" />
-                <CardTitle className="text-lg font-semibold">3. Выполнение проекта</CardTitle>
+                <CardTitle className="text-lg font-semibold">4. Выполнение проекта</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -115,7 +127,7 @@ export default function LandingPage() {
             <Card className="flex flex-col items-center text-center p-6">
               <CardHeader>
                 <Award className="h-10 w-10 text-primary mb-4" />
-                <CardTitle className="text-lg font-semibold">4. Получение результата</CardTitle>
+                <CardTitle className="text-lg font-semibold">5. Получение результата</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-gray-500 dark:text-gray-400">

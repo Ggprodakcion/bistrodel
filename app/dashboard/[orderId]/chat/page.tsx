@@ -168,34 +168,38 @@ export default function OrderChatPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file && order) {
-      const fileUrl = `/placeholder.svg?width=100&height=100`
-      const newFileMsg: Message = {
-        id: messages.length + 1,
-        sender: "client",
-        fileUrl: fileUrl,
-        fileName: file.name,
-        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      }
-      const updatedMessages = [...messages, newFileMsg]
-      setMessages(updatedMessages)
-
-      updateOrderInLocalStorage(order.id, updatedMessages, true, false)
-
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ""
-      }
-
-      setTimeout(() => {
-        const managerResponse: Message = {
-          id: updatedMessages.length + 1,
-          sender: "manager",
-          text: `Получили ваш файл: ${file.name}. Спасибо!`,
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        const fileDataUrl = reader.result as string // Получаем Data URL
+        const newFileMsg: Message = {
+          id: messages.length + 1,
+          sender: "client",
+          fileUrl: fileDataUrl, // Сохраняем Data URL
+          fileName: file.name,
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         }
-        const finalMessages = [...updatedMessages, managerResponse]
-        setMessages(finalMessages)
-        updateOrderInLocalStorage(order.id, finalMessages, false, true)
-      }, 1500)
+        const updatedMessages = [...messages, newFileMsg]
+        setMessages(updatedMessages)
+
+        updateOrderInLocalStorage(order.id, updatedMessages, true, false)
+
+        if (fileInputRef.current) {
+          fileInputRef.current.value = ""
+        }
+
+        setTimeout(() => {
+          const managerResponse: Message = {
+            id: updatedMessages.length + 1,
+            sender: "manager",
+            text: `Получили ваш файл: ${file.name}. Спасибо!`,
+            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          }
+          const finalMessages = [...updatedMessages, managerResponse]
+          setMessages(finalMessages)
+          updateOrderInLocalStorage(order.id, finalMessages, false, true)
+        }, 1500)
+      }
+      reader.readAsDataURL(file) // Читаем файл как Data URL
     }
   }
 
@@ -262,7 +266,7 @@ export default function OrderChatPage() {
                       <div className="flex flex-col items-start gap-2">
                         {isImageFile(msg.fileName) ? (
                           <img
-                            src={msg.fileUrl || "/placeholder.svg"}
+                            src={msg.fileUrl || "/placeholder.svg"} // Используем Data URL
                             alt={msg.fileName}
                             className="max-w-full h-auto rounded-md object-contain"
                             style={{ maxWidth: "150px", maxHeight: "150px" }}
@@ -274,7 +278,8 @@ export default function OrderChatPage() {
                           </div>
                         )}
                         <a
-                          href={msg.fileUrl}
+                          href={msg.fileUrl} // Используем Data URL
+                          download={msg.fileName} // Добавляем атрибут download
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-xs underline hover:no-underline mt-1"

@@ -96,7 +96,7 @@ export default function OrderChatPage() {
   const [order, setOrder] = useState<Order | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState("")
-  const [isUploadingFile, setIsUploadingFile] = useState(false) // Новое состояние
+  const [isUploadingFile, setIsUploadingFile] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -142,7 +142,6 @@ export default function OrderChatPage() {
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault()
     if (newMessage.trim() && order && !isUploadingFile) {
-      // Отключаем отправку во время загрузки файла
       const newMsg: Message = {
         id: messages.length + 1,
         sender: "client",
@@ -172,7 +171,7 @@ export default function OrderChatPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file && order) {
-      setIsUploadingFile(true) // Начинаем загрузку
+      setIsUploadingFile(true)
       const reader = new FileReader()
       reader.onloadend = () => {
         const fileDataUrl = reader.result as string
@@ -202,7 +201,7 @@ export default function OrderChatPage() {
           const finalMessages = [...updatedMessages, managerResponse]
           setMessages(finalMessages)
           updateOrderInLocalStorage(order.id, finalMessages, false, true)
-          setIsUploadingFile(false) // Завершаем загрузку после симуляции ответа
+          setIsUploadingFile(false)
         }, 1500)
       }
       reader.readAsDataURL(file)
@@ -251,36 +250,52 @@ export default function OrderChatPage() {
       </header>
 
       <main className="flex-1 container mx-auto py-8 px-4 md:px-6 flex flex-col">
-        <Card className="flex-1 flex flex-col">
-          <CardHeader>
-            <CardTitle>Чат по заказу: {order.service}</CardTitle>
-            <CardDescription>Статус: {order.status}</CardDescription>
+        <Card className="flex-1 flex flex-col shadow-lg">
+          {" "}
+          {/* Добавляем тень */}
+          <CardHeader className="pb-4">
+            {" "}
+            {/* Уменьшаем padding-bottom */}
+            <CardTitle className="text-2xl font-bold">Чат по заказу: {order.service}</CardTitle>
+            <CardDescription className="text-sm text-gray-500 dark:text-gray-400">
+              Статус: {order.status}
+            </CardDescription>
           </CardHeader>
-          <CardContent className="flex-1 flex flex-col justify-end">
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-800 rounded-md mb-4">
+          <CardContent className="flex-1 flex flex-col justify-end p-0">
+            {" "}
+            {/* Убираем padding */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-800 rounded-b-md">
+              {" "}
+              {/* Округляем только снизу */}
               {messages.map((msg) => (
                 <div key={msg.id} className={`flex ${msg.sender === "client" ? "justify-end" : "justify-start"}`}>
                   <div
-                    className={`max-w-[70%] p-3 rounded-lg ${
+                    className={`max-w-[70%] p-3 rounded-xl shadow-md ${
+                      /* Более округлые углы и тень */
                       msg.sender === "client"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        ? "bg-primary text-primary-foreground rounded-br-none" /* Убираем угол со стороны отправителя */
+                        : "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-bl-none" /* Убираем угол со стороны отправителя */
                     }`}
                   >
-                    {msg.text && <p className="text-sm">{msg.text}</p>}
+                    {msg.text && <p className="text-sm leading-relaxed">{msg.text}</p>}{" "}
+                    {/* Улучшаем читаемость текста */}
                     {msg.fileUrl && msg.fileName && (
-                      <div className="flex flex-col items-start gap-2">
+                      <div className="flex flex-col items-start gap-2 mt-2">
+                        {" "}
+                        {/* Добавляем отступ сверху */}
                         {isImageFile(msg.fileName) ? (
                           <Dialog>
                             <DialogTrigger asChild>
                               <img
                                 src={msg.fileUrl || "/placeholder.svg"}
                                 alt={msg.fileName}
-                                className="max-w-full h-auto rounded-md object-contain cursor-pointer hover:opacity-80 transition-opacity"
+                                className="max-w-full h-auto rounded-lg object-contain cursor-pointer hover:opacity-80 transition-opacity border border-gray-300 dark:border-gray-600" /* Добавляем рамку */
                                 style={{ maxWidth: "150px", maxHeight: "150px" }}
                               />
                             </DialogTrigger>
-                            <DialogContent className="max-w-[90vw] max-h-[90vh] p-0 overflow-hidden">
+                            <DialogContent className="max-w-[90vw] max-h-[90vh] p-0 overflow-hidden bg-transparent border-none shadow-none">
+                              {" "}
+                              {/* Убираем фон и рамку для полноэкранного изображения */}
                               <img
                                 src={msg.fileUrl || "/placeholder.svg"}
                                 alt={msg.fileName}
@@ -289,9 +304,12 @@ export default function OrderChatPage() {
                             </DialogContent>
                           </Dialog>
                         ) : (
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 p-2 bg-gray-100 dark:bg-gray-600 rounded-md border border-gray-300 dark:border-gray-500">
+                            {" "}
+                            {/* Фон и рамка для файлов */}
                             {getFileIcon(msg.fileName)}
-                            <span className="text-sm">{msg.fileName}</span>
+                            <span className="text-sm font-medium">{msg.fileName}</span>{" "}
+                            {/* Жирный шрифт для имени файла */}
                           </div>
                         )}
                         <a
@@ -299,26 +317,35 @@ export default function OrderChatPage() {
                           download={msg.fileName}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-xs underline hover:no-underline mt-1"
+                          className="text-xs underline hover:no-underline mt-1 text-blue-600 dark:text-blue-400" /* Цвет ссылки */
                         >
                           Скачать файл
                         </a>
                       </div>
                     )}
-                    <span className="text-xs opacity-75 mt-1 block text-right">{msg.timestamp}</span>
+                    <span className="text-xs opacity-75 mt-1 block text-right text-gray-600 dark:text-gray-300">
+                      {" "}
+                      {/* Цвет для времени */}
+                      {msg.timestamp}
+                    </span>
                   </div>
                 </div>
               ))}
               <div ref={messagesEndRef} />
             </div>
-            <form onSubmit={handleSendMessage} className="flex gap-2">
+            <form
+              onSubmit={handleSendMessage}
+              className="flex gap-2 p-4 border-t bg-white dark:bg-gray-900 rounded-b-lg"
+            >
+              {" "}
+              {/* Отделяем форму, добавляем фон и скругление */}
               <Input
                 type="text"
                 placeholder="Напишите сообщение..."
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
-                className="flex-1"
-                disabled={isUploadingFile} // Отключаем ввод текста во время загрузки
+                className="flex-1 rounded-lg border border-gray-300 dark:border-gray-700 focus:ring-primary focus:border-primary" /* Улучшаем стили инпута */
+                disabled={isUploadingFile}
               />
               <input
                 type="file"
@@ -326,15 +353,19 @@ export default function OrderChatPage() {
                 onChange={handleFileChange}
                 className="hidden"
                 id="file-upload-client"
-                disabled={isUploadingFile} // Отключаем инпут файла во время загрузки
+                disabled={isUploadingFile}
               />
               <Label htmlFor="file-upload-client" className="cursor-pointer">
-                <Button type="button" variant="outline" size="icon" disabled={isUploadingFile}>
+                <Button type="button" variant="outline" size="icon" disabled={isUploadingFile} className="rounded-lg">
+                  {" "}
+                  {/* Округляем кнопку */}
                   {isUploadingFile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
                   <span className="sr-only">Прикрепить файл</span>
                 </Button>
               </Label>
-              <Button type="submit" disabled={!newMessage.trim() || isUploadingFile}>
+              <Button type="submit" disabled={!newMessage.trim() || isUploadingFile} className="rounded-lg">
+                {" "}
+                {/* Округляем кнопку */}
                 <Send className="h-4 w-4" />
                 <span className="sr-only">Отправить</span>
               </Button>

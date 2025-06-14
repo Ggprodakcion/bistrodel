@@ -7,7 +7,7 @@ import { CardDescription } from "@/components/ui/card"
 import type React from "react"
 import type { HTMLDivElement } from "react"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react" // Добавляем useCallback
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -26,14 +26,14 @@ import {
   Smile,
 } from "lucide-react"
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
-import EmojiPicker, { type EmojiClickData } from "emoji-picker-react" // Импортируем EmojiPicker
+import EmojiPicker, { type EmojiClickData } from "emoji-picker-react"
 
 interface Message {
   id: number
   sender: "client" | "manager"
-  text?: string // Текст может быть опциональным, если это файл
-  fileUrl?: string // URL файла
-  fileName?: string // Имя файла
+  text?: string
+  fileUrl?: string
+  fileName?: string
   timestamp: string
 }
 
@@ -45,12 +45,13 @@ interface SupportTicket {
   message: string
   status: "Новое" | "В работе" | "Завершено" | "Отклонено"
   date: string
-  isUnread: boolean // Для админа
-  clientHasUnreadMessages: boolean // Для клиента
+  isUnread: boolean
+  clientHasUnreadMessages: boolean
+  clientIsTyping?: boolean // Новое поле
+  managerIsTyping?: boolean // Новое поле
   chatMessages: Message[]
 }
 
-// Вспомогательная функция для получения иконки файла
 const getFileIcon = (fileName: string) => {
   const extension = fileName.split(".").pop()?.toLowerCase()
   switch (extension) {
@@ -78,7 +79,6 @@ const getFileIcon = (fileName: string) => {
   }
 }
 
-// Вспомогательная функция для проверки, является ли файл изображением
 const isImageFile = (fileName: string) => {
   const extension = fileName.split(".").pop()?.toLowerCase()
   return ["jpg", "jpeg", "png", "gif", "svg", "webp"].includes(extension || "")
@@ -93,23 +93,54 @@ export default function AdminSupportChatPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState("")
   const [isUploadingFile, setIsUploadingFile] = useState(false)
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false) // Новое состояние для эмодзи-пикера
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null) // Для debounce
+
+  const updateTicketInLocalStorage = useCallback(
+    (
+      currentTicketId: string,
+      updatedMessages: Message[],
+      adminUnread: boolean,
+      clientUnread: boolean,
+      clientTyping: boolean,
+      managerTyping: boolean,
+    ) => {
+      const storedTickets: SupportTicket[] = JSON.parse(localStorage.getItem("supportTickets") || "[]")
+      const updatedTickets = storedTickets.map((t) =>
+        t.id === currentTicketId
+          ? {
+              ...t,
+              chatMessages: updatedMessages,
+              isUnread: adminUnread,
+              clientHasUnreadMessages: clientUnread,
+              clientIsTyping: clientTyping,
+              managerIsTyping: managerTyping,
+            }
+          : t,
+      )
+      localStorage.setItem("supportTickets", JSON.stringify(updatedTickets))
+    },
+    [],
+  )
 
   useEffect(() => {
     const loadTicketData = () => {
       const storedTickets: SupportTicket[] = JSON.parse(localStorage.getItem("supportTickets") || "[]")
       const foundTicket = storedTickets.find((t) => t.id === ticketId)
       if (foundTicket) {
-        const updatedTicket = { ...foundTicket, isUnread: false }
+        // При загрузке страницы, сбрасываем флаг managerIsTyping для текущего админа
+        const updatedTicket = { ...foundTicket, isUnread: false, managerIsTyping: false }
         setTicket(updatedTicket)
         setMessages(updatedTicket.chatMessages)
         updateTicketInLocalStorage(
           updatedTicket.id,
           updatedTicket.chatMessages,
-          false,
-          updatedTicket.clientHasUnreadMessages,
+          false, // isUnread
+          updatedTicket.clientHasUnreadMessages || false,
+          updatedTicket.clientIsTyping || false,
+          false, // managerIsTyping
         )
       } else {
         router.push("/admin/support")
@@ -117,9 +148,22 @@ export default function AdminSupportChatPage() {
     }
 
     loadTicketData()
-    const interval = setInterval(loadTicketData, 3000)
-    return () => clearInterval(interval)
-  }, [ticketId, router])
+    const interval = setInterval(loadTicketData, 1000) // Уменьшаем интервал для более отзывчивого индикатора
+    return () => {
+      clearInterval(interval)
+      // При размонтировании компонента, убедимся, что флаг managerIsTyping сброшен
+      if (ticket) {
+        updateTicketInLocalStorage(
+          ticket.id,
+          ticket.chatMessages,
+          ticket.isUnread || false,
+          ticket.clientHasUnreadMessages || false,
+          ticket.clientIsTyping || false,
+          false, // managerIsTyping
+        )
+      }
+    }
+  }, [ticketId, router, updateTicketInLocalStorage, ticket])
 
   useEffect(() => {
     scrollToBottom()
@@ -141,9 +185,10 @@ export default function AdminSupportChatPage() {
       const updatedMessages = [...messages, newMsg]
       setMessages(updatedMessages)
       setNewMessage("")
-      setShowEmojiPicker(false) // Закрываем пикер после отправки
+      setShowEmojiPicker(false)
 
-      updateTicketInLocalStorage(ticket.id, updatedMessages, false, true)
+      // Сбрасываем флаг managerIsTyping после отправки сообщения
+      updateTicketInLocalStorage(ticket.id, updatedMessages, false, true, ticket.clientIsTyping || false, false)
     }
   }
 
@@ -151,7 +196,10 @@ export default function AdminSupportChatPage() {
     const file = e.target.files?.[0]
     if (file && ticket) {
       setIsUploadingFile(true)
-      setShowEmojiPicker(false) // Закрываем пикер при загрузке файла
+      setShowEmojiPicker(false)
+      // Сбрасываем флаг managerIsTyping при загрузке файла
+      updateTicketInLocalStorage(ticket.id, messages, false, true, ticket.clientIsTyping || false, false)
+
       const reader = new FileReader()
       reader.onloadend = () => {
         const fileDataUrl = reader.result as string
@@ -165,7 +213,7 @@ export default function AdminSupportChatPage() {
         const updatedMessages = [...messages, newFileMsg]
         setMessages(updatedMessages)
 
-        updateTicketInLocalStorage(ticket.id, updatedMessages, false, true)
+        updateTicketInLocalStorage(ticket.id, updatedMessages, false, true, ticket.clientIsTyping || false, false)
 
         if (fileInputRef.current) {
           fileInputRef.current.value = ""
@@ -176,23 +224,68 @@ export default function AdminSupportChatPage() {
     }
   }
 
-  const onEmojiClick = (emojiData: EmojiClickData) => {
-    setNewMessage((prevMsg) => prevMsg + emojiData.emoji)
+  const handleNewMessageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewMessage(e.target.value)
+    if (ticket) {
+      // Устанавливаем managerIsTyping в true
+      updateTicketInLocalStorage(
+        ticket.id,
+        messages,
+        ticket.isUnread || false,
+        ticket.clientHasUnreadMessages || false,
+        ticket.clientIsTyping || false,
+        true, // managerIsTyping
+      )
+
+      // Сбрасываем предыдущий таймаут
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current)
+      }
+
+      // Устанавливаем новый таймаут для сброса managerIsTyping в false
+      typingTimeoutRef.current = setTimeout(() => {
+        if (ticket) {
+          updateTicketInLocalStorage(
+            ticket.id,
+            messages,
+            ticket.isUnread || false,
+            ticket.clientHasUnreadMessages || false,
+            ticket.clientIsTyping || false,
+            false, // managerIsTyping
+          )
+        }
+      }, 1500) // 1.5 секунды бездействия
+    }
   }
 
-  const updateTicketInLocalStorage = (
-    currentTicketId: string,
-    updatedMessages: Message[],
-    adminUnread: boolean,
-    clientUnread: boolean,
-  ) => {
-    const storedTickets: SupportTicket[] = JSON.parse(localStorage.getItem("supportTickets") || "[]")
-    const updatedTickets = storedTickets.map((t) =>
-      t.id === currentTicketId
-        ? { ...t, chatMessages: updatedMessages, isUnread: adminUnread, clientHasUnreadMessages: clientUnread }
-        : t,
-    )
-    localStorage.setItem("supportTickets", JSON.stringify(updatedTickets))
+  const onEmojiClick = (emojiData: EmojiClickData) => {
+    setNewMessage((prevMsg) => prevMsg + emojiData.emoji)
+    // Также обрабатываем состояние набора текста при добавлении эмодзи
+    if (ticket) {
+      updateTicketInLocalStorage(
+        ticket.id,
+        messages,
+        ticket.isUnread || false,
+        ticket.clientHasUnreadMessages || false,
+        ticket.clientIsTyping || false,
+        true, // managerIsTyping
+      )
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current)
+      }
+      typingTimeoutRef.current = setTimeout(() => {
+        if (ticket) {
+          updateTicketInLocalStorage(
+            ticket.id,
+            messages,
+            ticket.isUnread || false,
+            ticket.clientHasUnreadMessages || false,
+            ticket.clientIsTyping || false,
+            false, // managerIsTyping
+          )
+        }
+      }, 1500)
+    }
   }
 
   if (!ticket) {
@@ -279,6 +372,9 @@ export default function AdminSupportChatPage() {
               ))}
               <div ref={messagesEndRef} />
             </div>
+            {ticket.clientIsTyping && (
+              <div className="text-sm text-gray-500 dark:text-gray-400 px-4 py-2">Клиент печатает...</div>
+            )}
             <div className="relative p-4 border-t bg-white dark:bg-gray-900 rounded-b-lg">
               {showEmojiPicker && (
                 <div className="absolute bottom-full right-0 mb-2 z-10">
@@ -290,7 +386,7 @@ export default function AdminSupportChatPage() {
                   type="text"
                   placeholder="Напишите сообщение..."
                   value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
+                  onChange={handleNewMessageChange} // Используем новую функцию
                   className="flex-1 rounded-lg border border-gray-300 dark:border-gray-700 focus:ring-primary focus:border-primary"
                   disabled={isUploadingFile}
                 />

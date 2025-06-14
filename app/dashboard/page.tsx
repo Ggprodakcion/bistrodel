@@ -95,7 +95,7 @@ export default function ClientDashboardPage() {
           <span>На главную</span>
         </Link>
         <h1 className="text-2xl font-bold">Личный Кабинет Клиента</h1>
-        <Button variant="outline" size="sm" onClick={logout} className="text-white border-white hover:bg-gray-700">
+        <Button variant="secondary" size="sm" onClick={logout}>
           Выйти
         </Button>
       </header>

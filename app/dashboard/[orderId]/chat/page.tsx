@@ -13,7 +13,16 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, Send, Paperclip } from "lucide-react" // Добавляем Paperclip
+import {
+  ArrowLeft,
+  Send,
+  Paperclip,
+  FileText,
+  FileImage,
+  FileArchive,
+  FileSpreadsheet,
+  FileQuestion,
+} from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 
 interface Message {
@@ -38,8 +47,42 @@ interface Order {
   canDiscuss: boolean
   canDownload: boolean
   chatMessages: Message[]
-  adminHasUnreadMessages?: boolean // Добавлено
-  clientHasUnreadMessages?: boolean // Добавлено
+  adminHasUnreadMessages?: boolean
+  clientHasUnreadMessages?: boolean
+}
+
+// Вспомогательная функция для получения иконки файла
+const getFileIcon = (fileName: string) => {
+  const extension = fileName.split(".").pop()?.toLowerCase()
+  switch (extension) {
+    case "pdf":
+    case "doc":
+    case "docx":
+    case "txt":
+      return <FileText className="h-4 w-4" />
+    case "jpg":
+    case "jpeg":
+    case "png":
+    case "gif":
+    case "svg":
+    case "webp":
+      return <FileImage className="h-4 w-4" /> // Для изображений будет превью, но иконка тоже может быть полезна
+    case "zip":
+    case "rar":
+    case "7z":
+      return <FileArchive className="h-4 w-4" />
+    case "xls":
+    case "xlsx":
+      return <FileSpreadsheet className="h-4 w-4" />
+    default:
+      return <FileQuestion className="h-4 w-4" />
+  }
+}
+
+// Вспомогательная функция для проверки, является ли файл изображением
+const isImageFile = (fileName: string) => {
+  const extension = fileName.split(".").pop()?.toLowerCase()
+  return ["jpg", "jpeg", "png", "gif", "svg", "webp"].includes(extension || "")
 }
 
 export default function OrderChatPage() {
@@ -51,7 +94,7 @@ export default function OrderChatPage() {
   const [order, setOrder] = useState<Order | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState("")
-  const fileInputRef = useRef<HTMLInputElement>(null) // Референс для инпута файла
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -66,7 +109,6 @@ export default function OrderChatPage() {
       const currentClientEmail = localStorage.getItem("currentClientEmail")
 
       if (foundOrder && foundOrder.clientEmail === currentClientEmail) {
-        // При открытии чата клиентом, помечаем сообщения как прочитанные для клиента
         const updatedOrder = { ...foundOrder, clientHasUnreadMessages: false }
         setOrder(updatedOrder)
         setMessages(updatedOrder.chatMessages)
@@ -107,10 +149,8 @@ export default function OrderChatPage() {
       setMessages(updatedMessages)
       setNewMessage("")
 
-      // Клиент отправил сообщение, админ теперь имеет непрочитанные сообщения
       updateOrderInLocalStorage(order.id, updatedMessages, true, false)
 
-      // Simulate manager's response
       setTimeout(() => {
         const managerResponse: Message = {
           id: updatedMessages.length + 1,
@@ -120,7 +160,6 @@ export default function OrderChatPage() {
         }
         const finalMessages = [...updatedMessages, managerResponse]
         setMessages(finalMessages)
-        // Менеджер ответил, клиент теперь имеет непрочитанные сообщения
         updateOrderInLocalStorage(order.id, finalMessages, false, true)
       }, 1500)
     }
@@ -129,9 +168,7 @@ export default function OrderChatPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file && order) {
-      // В реальном приложении здесь будет логика загрузки файла на сервер
-      // и получение реального URL. Для демо используем заглушку.
-      const fileUrl = `/placeholder.svg?width=100&height=100` // Заглушка
+      const fileUrl = `/placeholder.svg?width=100&height=100`
       const newFileMsg: Message = {
         id: messages.length + 1,
         sender: "client",
@@ -142,15 +179,12 @@ export default function OrderChatPage() {
       const updatedMessages = [...messages, newFileMsg]
       setMessages(updatedMessages)
 
-      // Клиент отправил файл, админ теперь имеет непрочитанные сообщения
       updateOrderInLocalStorage(order.id, updatedMessages, true, false)
 
-      // Очищаем инпут файла
       if (fileInputRef.current) {
         fileInputRef.current.value = ""
       }
 
-      // Simulate manager's response for file
       setTimeout(() => {
         const managerResponse: Message = {
           id: updatedMessages.length + 1,
@@ -160,7 +194,6 @@ export default function OrderChatPage() {
         }
         const finalMessages = [...updatedMessages, managerResponse]
         setMessages(finalMessages)
-        // Менеджер ответил, клиент теперь имеет непрочитанные сообщения
         updateOrderInLocalStorage(order.id, finalMessages, false, true)
       }, 1500)
     }
@@ -226,15 +259,27 @@ export default function OrderChatPage() {
                   >
                     {msg.text && <p className="text-sm">{msg.text}</p>}
                     {msg.fileUrl && msg.fileName && (
-                      <div className="flex items-center gap-2">
-                        <Paperclip className="h-4 w-4" />
+                      <div className="flex flex-col items-start gap-2">
+                        {isImageFile(msg.fileName) ? (
+                          <img
+                            src={msg.fileUrl || "/placeholder.svg"}
+                            alt={msg.fileName}
+                            className="max-w-full h-auto rounded-md object-contain"
+                            style={{ maxWidth: "150px", maxHeight: "150px" }}
+                          />
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            {getFileIcon(msg.fileName)}
+                            <span className="text-sm">{msg.fileName}</span>
+                          </div>
+                        )}
                         <a
                           href={msg.fileUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-sm underline hover:no-underline"
+                          className="text-xs underline hover:no-underline mt-1"
                         >
-                          {msg.fileName}
+                          Скачать файл
                         </a>
                       </div>
                     )}

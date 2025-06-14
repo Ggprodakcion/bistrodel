@@ -25,7 +25,7 @@ export default function AdminLoginPage() {
 
     try {
       // Пароль администратора берется из переменной окружения NEXT_PUBLIC_ADMIN_PASSWORD
-      // Если переменная не установлена, используется значение по умолчанию "admin123"
+      // ЕСЛИ ПЕРЕМЕННАЯ НЕ УСТАНОВЛЕНА ИЛИ ПУСТА, ИСПОЛЬЗУЕТСЯ ЗНАЧЕНИЕ ПО УМОЛЧАНИЮ "admin123"
       const adminPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "admin123"
       const response = await new Promise((resolve, reject) => {
         setTimeout(() => {
@@ -34,7 +34,7 @@ export default function AdminLoginPage() {
           } else {
             reject(
               new Error(
-                "Неверный пароль администратора. Пожалуйста, убедитесь, что вы используете правильный пароль, установленный в переменной окружения NEXT_PUBLIC_ADMIN_PASSWORD.",
+                "Неверный пароль администратора. Пожалуйста, убедитесь, что вы используете правильный пароль, установленный в переменной окружения NEXT_PUBLIC_ADMIN_PASSWORD (или 'admin123' по умолчанию).",
               ),
             )
           }

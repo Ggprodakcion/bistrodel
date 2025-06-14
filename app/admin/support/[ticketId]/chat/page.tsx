@@ -23,6 +23,7 @@ import {
   FileSpreadsheet,
   FileQuestion,
 } from "lucide-react"
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog" // Импортируем Dialog компоненты
 
 interface Message {
   id: number
@@ -61,7 +62,7 @@ const getFileIcon = (fileName: string) => {
     case "gif":
     case "svg":
     case "webp":
-      return <FileImage className="h-4 w-4" /> // Для изображений будет превью, но иконка тоже может быть полезна
+      return <FileImage className="h-4 w-4" />
     case "zip":
     case "rar":
     case "7z":
@@ -145,11 +146,11 @@ export default function AdminSupportChatPage() {
     if (file && ticket) {
       const reader = new FileReader()
       reader.onloadend = () => {
-        const fileDataUrl = reader.result as string // Получаем Data URL
+        const fileDataUrl = reader.result as string
         const newFileMsg: Message = {
           id: messages.length + 1,
           sender: "manager",
-          fileUrl: fileDataUrl, // Сохраняем Data URL
+          fileUrl: fileDataUrl,
           fileName: file.name,
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         }
@@ -162,7 +163,7 @@ export default function AdminSupportChatPage() {
           fileInputRef.current.value = ""
         }
       }
-      reader.readAsDataURL(file) // Читаем файл как Data URL
+      reader.readAsDataURL(file)
     }
   }
 
@@ -223,12 +224,23 @@ export default function AdminSupportChatPage() {
                     {msg.fileUrl && msg.fileName && (
                       <div className="flex flex-col items-start gap-2">
                         {isImageFile(msg.fileName) ? (
-                          <img
-                            src={msg.fileUrl || "/placeholder.svg"} // Используем Data URL
-                            alt={msg.fileName}
-                            className="max-w-full h-auto rounded-md object-contain"
-                            style={{ maxWidth: "150px", maxHeight: "150px" }}
-                          />
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <img
+                                src={msg.fileUrl || "/placeholder.svg"}
+                                alt={msg.fileName}
+                                className="max-w-full h-auto rounded-md object-contain cursor-pointer hover:opacity-80 transition-opacity"
+                                style={{ maxWidth: "150px", maxHeight: "150px" }}
+                              />
+                            </DialogTrigger>
+                            <DialogContent className="max-w-[90vw] max-h-[90vh] p-0 overflow-hidden">
+                              <img
+                                src={msg.fileUrl || "/placeholder.svg"}
+                                alt={msg.fileName}
+                                className="w-full h-full object-contain"
+                              />
+                            </DialogContent>
+                          </Dialog>
                         ) : (
                           <div className="flex items-center gap-2">
                             {getFileIcon(msg.fileName)}
@@ -236,8 +248,8 @@ export default function AdminSupportChatPage() {
                           </div>
                         )}
                         <a
-                          href={msg.fileUrl} // Используем Data URL
-                          download={msg.fileName} // Добавляем атрибут download
+                          href={msg.fileUrl}
+                          download={msg.fileName}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-xs underline hover:no-underline mt-1"

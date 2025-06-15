@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuth } from "@/components/auth-provider"
 import { Loader2 } from "lucide-react"
+import Link from "next/link"
 
 export default function AdminLoginPage() {
   const [password, setPassword] = useState("")
@@ -94,6 +95,11 @@ export default function AdminLoginPage() {
               )}
             </Button>
           </form>
+          <Link href="/" className="w-full mt-4">
+            <Button variant="outline" className="w-full">
+              Назад в главное меню
+            </Button>
+          </Link>
         </CardContent>
       </Card>
     </div>

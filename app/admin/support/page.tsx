@@ -101,13 +101,13 @@ export default function AdminSupportPage() {
         </Link>
         <h1 className="text-2xl font-bold">Обращения в Поддержку</h1>
         <Button
-          variant="outline"
+          variant="destructive" // Изменено с "outline"
           size="sm"
           onClick={() => {
             localStorage.removeItem("isAdminAuthenticated")
             router.push("/admin/login")
           }}
-          className="text-white border-white hover:bg-gray-700"
+          className="text-white border-white hover:bg-gray-700" // Эти классы могут быть удалены
         >
           Выйти
         </Button>

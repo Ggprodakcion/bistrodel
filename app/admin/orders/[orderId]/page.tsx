@@ -108,7 +108,17 @@ export default function AdminOrderDetailPage() {
           <span>К заказам</span>
         </Link>
         <h1 className="text-2xl font-bold">Детали Заказа №{order.id.split("-")[1]}</h1>
-        <div className="w-10" />
+        <Button
+          variant="destructive"
+          size="sm"
+          onClick={() => {
+            localStorage.removeItem("isAdminAuthenticated")
+            router.push("/admin/login")
+          }}
+          className="text-white border-white hover:bg-gray-700"
+        >
+          Выйти
+        </Button>
       </header>
 
       <main className="flex-1 container mx-auto py-12 px-4 md:px-6">

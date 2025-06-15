@@ -26,17 +26,11 @@ export default function AdminLoginPage() {
 
     try {
       const adminPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "admin123"
-      // ВРЕМЕННО ВКЛЮЧИТЕ ЭТУ СТРОКУ ДЛЯ ОТЛАДКИ, ЗАТЕМ УДАЛИТЕ!
-      console.log("Admin password (from env or default):", adminPassword)
-      console.log("Entered password:", password)
-
       const response = await new Promise((resolve, reject) => {
         setTimeout(() => {
           if (password === adminPassword) {
-            console.log("Password matched!") // Отладочное сообщение
             resolve({ success: true })
           } else {
-            console.log("Password mismatch!") // Отладочное сообщение
             reject(
               new Error(
                 "Неверный пароль администратора. Пожалуйста, убедитесь, что вы используете правильный пароль, установленный в переменной окружения NEXT_PUBLIC_ADMIN_PASSWORD (или 'admin123' по умолчанию).",
@@ -47,9 +41,7 @@ export default function AdminLoginPage() {
       })
 
       if ((response as { success: boolean }).success) {
-        console.log("Login successful, attempting to set authentication state.") // Отладочное сообщение
         login("admin", "admin") // Это устанавливает isAuthenticated в localStorage
-        console.log("Authentication state set, attempting redirect.") // Отладочное сообщение
         router.push("/admin")
       } else {
         setError("Неверный пароль администратора.")
